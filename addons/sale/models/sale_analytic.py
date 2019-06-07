@@ -8,25 +8,7 @@ class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
 
     @api.multi
-    def _compute_analytic(self, domain=None):
-        lines = {}
-        force_so_lines = self.env.context.get("force_so_lines")
-        if not domain:
-            if not self.ids and not force_so_lines:
-                return True
-            # To filter on analyic lines linked to an expense
-            expense_type_id = self.env.ref('account.data_account_type_expenses', raise_if_not_found=False)
-            expense_type_id = expense_type_id and expense_type_id.id
-            domain = [('so_line', 'in', self.ids), ('amount', '<=', 0.0)]
-
-        data = self.env['account.analytic.line'].read_group(
-            domain,
-            ['so_line', 'unit_amount', 'product_uom_id'], ['product_uom_id', 'so_line'], lazy=False
-        )
-        # If the unlinked analytic line was the last one on the SO line, the qty was not updated.
-        if force_so_lines:
-            for line in force_so_lines:
-                lines.setdefault(line, 0.0)
+    def _get_amount_per_line(self, lines, data):
         for d in data:
             if not d['product_uom_id']:
                 continue
@@ -38,7 +20,30 @@ class SaleOrderLine(models.Model):
             else:
                 qty = d['unit_amount']
             lines[line] += qty
+        return lines
 
+    @api.multi
+    def _compute_analytic(self, domain=None):
+        lines = {}
+        force_so_lines = self.env.context.get("force_so_lines")
+        if not domain:
+            if not self.ids and not force_so_lines:
+                return True
+            # To filter on analyic lines linked to an expense
+            expense_type_id = self.env.ref('account.data_account_type_expenses', raise_if_not_found=False)
+            expense_type_id = expense_type_id and expense_type_id.id
+            domain = [('so_line', 'in', self.ids), ('amount', '<=', 0.0)]
+        # If the unlinked analytic line was the last one on the SO line, the qty was not updated.
+        if force_so_lines:
+            for line in force_so_lines:
+                lines.setdefault(line, 0.0)
+        aal_mod = self.env['account.analytic.line']
+        data = aal_mod.read_group(
+            domain,
+            aal_mod._get_compute_analytic_read_fields(),
+            aal_mod._get_compute_analytic_groupby_fields(),
+            lazy=False)
+        lines = self._get_amount_per_line(lines, data)
         for line, qty in lines.items():
             line.qty_delivered = qty
         return True
@@ -47,6 +52,14 @@ class SaleOrderLine(models.Model):
 class AccountAnalyticLine(models.Model):
     _inherit = "account.analytic.line"
     so_line = fields.Many2one('sale.order.line', string='Sale Order Line')
+
+    @api.model
+    def _get_compute_analytic_read_fields(self):
+        return ['so_line', 'unit_amount', 'product_uom_id']
+
+    @api.model
+    def _get_compute_analytic_groupby_fields(self):
+        return ['product_uom_id', 'so_line']
 
     def _get_invoice_price(self, order):
         if self.product_id.expense_policy == 'sales_price':
