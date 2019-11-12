@@ -489,26 +489,31 @@ class SaleOrder(models.Model):
             analytic = self.env['account.analytic.account'].create(vals)
             order.project_id = analytic
 
+    @api.model
+    def get_report_values(self, lines, category):
+        return {
+            'name': category and category.name or _('Uncategorized'),
+            'subtotal': category and category.subtotal,
+            'pagebreak': category and category.pagebreak,
+            'lines': list(lines)
+        }
+
     @api.multi
     def order_lines_layouted(self):
         """
-        Returns this order lines classified by sale_layout_category and separated in
+        Returns this order lines classified by
+         sale_layout_category and separated in
         pages according to the category pagebreaks. Used to render the report.
         """
         self.ensure_one()
         report_pages = [[]]
-        for category, lines in groupby(self.order_line, lambda l: l.layout_category_id):
+        for category, lines in groupby(self.order_line,
+                                       lambda l: l.layout_category_id):
             # If last added category induced a pagebreak, this one will be on a new page
             if report_pages[-1] and report_pages[-1][-1]['pagebreak']:
                 report_pages.append([])
             # Append category to current report page
-            report_pages[-1].append({
-                'name': category and category.name or _('Uncategorized'),
-                'subtotal': category and category.subtotal,
-                'pagebreak': category and category.pagebreak,
-                'lines': list(lines)
-            })
-
+            report_pages[-1].append(self.get_report_values(lines, category))
         return report_pages
 
     @api.multi
