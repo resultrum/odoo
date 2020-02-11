@@ -177,13 +177,8 @@ class WebsiteSale(http.Controller):
 
         return domain
 
-    @http.route([
-        '/shop',
-        '/shop/page/<int:page>',
-        '/shop/category/<model("product.public.category"):category>',
-        '/shop/category/<model("product.public.category"):category>/page/<int:page>'
-    ], type='http', auth="public", website=True)
-    def shop(self, page=0, category=None, search='', ppg=False, **post):
+    def get_shop_values(
+            self, page=0, category=None, search='', ppg=False, **post):
         if ppg:
             try:
                 ppg = int(ppg)
@@ -194,7 +189,8 @@ class WebsiteSale(http.Controller):
             ppg = PPG
 
         if category:
-            category = request.env['product.public.category'].search([('id', '=', int(category))], limit=1)
+            category = request.env['product.public.category'].search(
+                [('id', '=', int(category))], limit=1)
             if not category:
                 raise NotFound()
 
@@ -205,15 +201,18 @@ class WebsiteSale(http.Controller):
 
         domain = self._get_search_domain(search, category, attrib_values)
 
-        keep = QueryURL('/shop', category=category and int(category), search=search, attrib=attrib_list, order=post.get('order'))
+        keep = QueryURL('/shop', category=category and int(category),
+                        search=search, attrib=attrib_list, order=post.get('order'))
         pricelist_context = dict(request.env.context)
         if not pricelist_context.get('pricelist'):
             pricelist = request.website.get_current_pricelist()
             pricelist_context['pricelist'] = pricelist.id
         else:
-            pricelist = request.env['product.pricelist'].browse(pricelist_context['pricelist'])
+            pricelist = request.env['product.pricelist'].browse(
+                pricelist_context['pricelist'])
 
-        request.context = dict(request.context, pricelist=pricelist.id, partner=request.env.user.partner_id)
+        request.context = dict(request.context, pricelist=pricelist.id,
+                               partner=request.env.user.partner_id)
 
         url = "/shop"
         if search:
@@ -221,7 +220,8 @@ class WebsiteSale(http.Controller):
         if attrib_list:
             post['attrib'] = attrib_list
 
-        categs = request.env['product.public.category'].search([('parent_id', '=', False)])
+        categs = request.env['product.public.category'].search(
+            [('parent_id', '=', False)])
         Product = request.env['product.template']
 
         parent_category_ids = []
@@ -234,14 +234,18 @@ class WebsiteSale(http.Controller):
                 current_category = current_category.parent_id
 
         product_count = Product.search_count(domain)
-        pager = request.website.pager(url=url, total=product_count, page=page, step=ppg, scope=7, url_args=post)
-        products = Product.search(domain, limit=ppg, offset=pager['offset'], order=self._get_search_order(post))
+        pager = request.website.pager(url=url, total=product_count, page=page,
+                                      step=ppg, scope=7, url_args=post)
+        products = Product.search(domain, limit=ppg, offset=pager['offset'],
+                                  order=self._get_search_order(post))
 
         ProductAttribute = request.env['product.attribute']
         if products:
             # get all products without limit
             selected_products = Product.search(domain, limit=False)
-            attributes = ProductAttribute.search([('attribute_line_ids.product_tmpl_id', 'in', selected_products.ids)])
+            attributes = ProductAttribute.search([(
+                                                  'attribute_line_ids.product_tmpl_id',
+                                                  'in', selected_products.ids)])
         else:
             attributes = ProductAttribute.browse(attributes_ids)
 
@@ -268,10 +272,20 @@ class WebsiteSale(http.Controller):
         }
         if category:
             values['main_object'] = category
+        return values
+
+    @http.route([
+        '/shop',
+        '/shop/page/<int:page>',
+        '/shop/category/<model("product.public.category"):category>',
+        '/shop/category/<model("product.public.category"):category>/page/<int:page>'
+    ], type='http', auth="public", website=True)
+    def shop(self, page=0, category=None, search='', ppg=False, **post):
+        values = self.get_shop_values(
+            page=page, category=category, search=search, ppg=ppg, **post)
         return request.render("website_sale.products", values)
 
-    @http.route(['/shop/product/<model("product.template"):product>'], type='http', auth="public", website=True)
-    def product(self, product, category='', search='', **kwargs):
+    def get_product_values(self, product, category='', search='', **kwargs):
         product_context = dict(request.env.context,
                                active_id=product.id,
                                partner=request.env.user.partner_id)
@@ -319,6 +333,12 @@ class WebsiteSale(http.Controller):
             'rating_message_values': rating_message_values,
             'rating_product': rating_product
         }
+        return values
+
+    @http.route(['/shop/product/<model("product.template"):product>'], type='http', auth="public", website=True)
+    def product(self, product, category='', search='', **kwargs):
+        values = self.get_product_values(
+            product, category=category, search=search, **kwargs)
         return request.render("website_sale.product", values)
 
     @http.route(['/shop/change_pricelist/<model("product.pricelist"):pl_id>'], type='http', auth="public", website=True)
