@@ -38,6 +38,10 @@ var SectionAndNoteListRenderer = ListRenderer.extend({
                 }
                 $cell.attr('colspan', nbrColumns);
             }
+            else {
+                $cell.removeClass('o_invisible_modifier');
+                return $cell.addClass('o_hidden');
+            }
         }
 
         return $cell;
