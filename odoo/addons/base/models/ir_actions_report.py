@@ -510,7 +510,7 @@ class IrActionsReport(models.Model):
 
             barcode = createBarcodeDrawing(
                 barcode_type, value=value, format='png', width=width, height=height,
-                humanReadable=humanreadable, quiet=quiet, barBorder=bar_border
+                humanReadable=humanreadable, quiet=quiet, barBorder=bar_border, bearers=0
             )
             return barcode.asString('png')
         except (ValueError, AttributeError):
