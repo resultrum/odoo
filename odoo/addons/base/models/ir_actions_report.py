@@ -528,7 +528,7 @@ class IrActionsReport(models.Model):
                 kwargs['barBorder'] = 0
 
         try:
-            barcode = createBarcodeDrawing(barcode_type, value=value, format='png', **kwargs)
+            barcode = createBarcodeDrawing(barcode_type, value=value, format='png',bearers=0, **kwargs)
             return barcode.asString('png')
         except (ValueError, AttributeError):
             if barcode_type == 'Code128':
