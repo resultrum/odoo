@@ -478,7 +478,7 @@ class Survey(http.Controller):
             filter_finish = True
         if post or filter_finish:
             filter_data = self._get_filter_data(post)
-            current_filters = survey.filter_input_ids(filter_data, filter_finish)
+            current_filters = survey.filter_input_ids(filter_data, filter_finish, post)
             filter_display_data = survey.get_filter_display_data(filter_data)
         return request.render(result_template,
                                       {'survey': survey,
@@ -562,7 +562,7 @@ class Survey(http.Controller):
         """Returns dictionary having values for rendering template"""
         current_filters = current_filters if current_filters else []
         result = {'page_ids': []}
-        
+
         # First append questions without page
         questions_without_page = [self._prepare_question_values(question,current_filters) for question in survey.question_ids if not question.page_id]
         if questions_without_page:
