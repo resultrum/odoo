@@ -518,7 +518,7 @@ class Survey(models.Model):
     # GRAPH / RESULTS
     # ------------------------------------------------------------
 
-    def filter_input_ids(self, filters, finished=False):
+    def filter_input_ids(self, filters, finished=False,post=None):
         """If user applies any filters, then this function returns list of
            filtered user_input_id and label's strings for display data in web.
            :param filters: list of dictionary (having: row_id, ansewr_id)
@@ -639,7 +639,7 @@ class Survey(models.Model):
             ('question_id', '=', question.id)
         ]
         if current_filters:
-            domain = expression.AND([[('id', 'in', current_filters)], domain])
+            domain = expression.AND([[('user_input_id', 'in', current_filters)], domain])
 
         line_ids = self.env["survey.user_input_line"].search(domain)
         return {
