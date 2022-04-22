@@ -33,7 +33,7 @@ class SaleOrder(models.Model):
             error = _('Invalid or Expired Gift Card.')
         elif gift_card in self.order_line.mapped("gift_card_id"):
             error = _('Gift Card already used.')
-        elif gift_card.partner_id and gift_card.partner_id != self.env.user.partner_id:
+        elif gift_card.partner_id and gift_card.partner_id != self._get_gift_card_user():
             error = _('Gift Card are restricted for another user.')
 
         amount = min(self.amount_total, gift_card.balance_converted(self.currency_id))
@@ -49,6 +49,10 @@ class SaleOrder(models.Model):
                 'order_id': self.id
             })
         return error
+
+    def _get_gift_card_user(self):
+        self.ensure_one()
+        return self.env.user.partner_id
 
     def _send_gift_card_mail(self):
         template = self.env.ref('sale_gift_card.mail_template_gift_card', raise_if_not_found=False)
