@@ -419,13 +419,18 @@ var Chatter = Widget.extend({
         this._suggestedPartnersProm = undefined;
     },
     _renderButtons: function () {
-        return QWeb.render('mail.chatter.Buttons', {
+        return QWeb.render('mail.chatter.Buttons', this._getRenderParams());
+    },
+
+    _getRenderParams: function () {
+        return {
             newMessageButton: !!this.fields.thread,
             logNoteButton: this.hasLogButton,
             scheduleActivityButton: !!this.fields.activity,
             isMobile: config.device.isMobile,
-        });
+        }
     },
+
     /**
      * @private
      * @param {Object} record
