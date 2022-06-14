@@ -92,10 +92,7 @@ class SurveyUserInput(models.Model):
         """ Remove empty user inputs that have been created manually
             (used as a cronjob declared in data/survey_cron.xml)
         """
-        an_hour_ago = fields.Datetime.to_string(datetime.datetime.now() - datetime.timedelta(hours=1))
-        self.search([('input_type', '=', 'manually'),
-                     ('state', '=', 'new'),
-                     ('create_date', '<', an_hour_ago)]).unlink()
+        pass
 
     @api.model
     def _generate_invite_token(self):
