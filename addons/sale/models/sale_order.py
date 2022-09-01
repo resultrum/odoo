@@ -742,26 +742,8 @@ class SaleOrder(models.Model):
 
             if not any(not line.display_type for line in invoiceable_lines):
                 continue
-
             invoice_line_vals = []
-            down_payment_section_added = False
-            for line in invoiceable_lines:
-                if not down_payment_section_added and line.is_downpayment:
-                    # Create a dedicated section for the down payments
-                    # (put at the end of the invoiceable_lines)
-                    invoice_line_vals.append(
-                        (0, 0, order._prepare_down_payment_section_line(
-                            sequence=invoice_item_sequence,
-                        )),
-                    )
-                    down_payment_section_added = True
-                    invoice_item_sequence += 1
-                invoice_line_vals.append(
-                    (0, 0, line._prepare_invoice_line(
-                        sequence=invoice_item_sequence,
-                    )),
-                )
-                invoice_item_sequence += 1
+            invoice_line_vals, invoice_item_sequence = order._prepare_invoice_lines(invoice_item_sequence, invoiceable_lines,invoice_line_vals)
 
             invoice_vals['invoice_line_ids'] += invoice_line_vals
             invoice_vals_list.append(invoice_vals)
@@ -843,6 +825,27 @@ class SaleOrder(models.Model):
                 subtype_id=self.env.ref('mail.mt_note').id
             )
         return moves
+
+    def _prepare_invoice_lines(self, invoice_item_sequence, invoiceable_lines,invoice_line_vals):
+        down_payment_section_added = False
+        for line in invoiceable_lines:
+            if not down_payment_section_added and line.is_downpayment:
+                # Create a dedicated section for the down payments
+                # (put at the end of the invoiceable_lines)
+                invoice_line_vals.append(
+                    (0, 0, self._prepare_down_payment_section_line(
+                        sequence=invoice_item_sequence,
+                    )),
+                )
+                down_payment_section_added = True
+                invoice_item_sequence += 1
+            invoice_line_vals.append(
+                (0, 0, line._prepare_invoice_line(
+                    sequence=invoice_item_sequence,
+                )),
+            )
+            invoice_item_sequence += 1
+        return invoice_line_vals, invoice_item_sequence
 
     def action_draft(self):
         orders = self.filtered(lambda s: s.state in ['cancel', 'sent'])
