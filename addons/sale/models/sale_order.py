@@ -761,25 +761,13 @@ class SaleOrder(models.Model):
                     x.get(grouping_key) for grouping_key in invoice_grouping_keys
                 ]
             )
-            for grouping_keys, invoices in groupby(invoice_vals_list, key=lambda x: [x.get(grouping_key) for grouping_key in invoice_grouping_keys]):
-                origins = set()
-                payment_refs = set()
-                refs = set()
-                ref_invoice_vals = None
-                for invoice_vals in invoices:
-                    if not ref_invoice_vals:
-                        ref_invoice_vals = invoice_vals
-                    else:
-                        ref_invoice_vals['invoice_line_ids'] += invoice_vals['invoice_line_ids']
-                    origins.add(invoice_vals['invoice_origin'])
-                    payment_refs.add(invoice_vals['payment_reference'])
-                    refs.add(invoice_vals['ref'])
-                ref_invoice_vals.update({
-                    'ref': ', '.join(refs)[:2000],
-                    'invoice_origin': ', '.join(origins),
-                    'payment_reference': len(payment_refs) == 1 and payment_refs.pop() or False,
-                })
-                new_invoice_vals_list.append(ref_invoice_vals)
+            for grouping_keys, invoices in groupby(invoice_vals_list,
+                                                   key=lambda x: [
+                                                       x.get(grouping_key) for
+                                                       grouping_key in
+                                                       invoice_grouping_keys]):
+                invoices_vals = self._get_grouped_invoice_vals(grouping_keys,invoices)
+                new_invoice_vals_list = [*new_invoice_vals_list, *invoices_vals]
             invoice_vals_list = new_invoice_vals_list
 
         # 3) Create invoices.
@@ -846,6 +834,28 @@ class SaleOrder(models.Model):
             )
             invoice_item_sequence += 1
         return invoice_line_vals, invoice_item_sequence
+
+    def _get_grouped_invoice_vals(self, grouping_keys, invoices):
+        origins = set()
+        payment_refs = set()
+        refs = set()
+        ref_invoice_vals = None
+        for invoice_vals in invoices:
+            if not ref_invoice_vals:
+                ref_invoice_vals = invoice_vals
+            else:
+                ref_invoice_vals['invoice_line_ids'] += invoice_vals[
+                    'invoice_line_ids']
+            origins.add(invoice_vals['invoice_origin'])
+            payment_refs.add(invoice_vals['payment_reference'])
+            refs.add(invoice_vals['ref'])
+        ref_invoice_vals.update({
+            'ref': ', '.join(refs)[:2000],
+            'invoice_origin': ', '.join(origins),
+            'payment_reference': len(
+                payment_refs) == 1 and payment_refs.pop() or False,
+        })
+        return [ref_invoice_vals]
 
     def action_draft(self):
         orders = self.filtered(lambda s: s.state in ['cancel', 'sent'])
