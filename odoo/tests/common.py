@@ -1292,7 +1292,7 @@ class HttpCase(TransactionCase):
             return
 
         db = get_db_name()
-        uid = self.registry['res.users'].authenticate(db, user, password, None)
+        uid = self.registry['res.users'].authenticate(db, user, password, {'interactive': False})
         env = api.Environment(self.cr, uid, {})
 
         # self.session.authenticate(db, user, password, uid=uid)
