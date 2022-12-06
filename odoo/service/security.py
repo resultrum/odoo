@@ -7,7 +7,7 @@ import odoo.exceptions
 def login(db, login, password):
     res_users = odoo.registry(db)['res.users']
     try:
-        return res_users._login(db, login, password)
+        return res_users._login(db, login, password, {})
     except odoo.exceptions.AccessDenied:
         return False
 
