@@ -27,9 +27,11 @@ def exp_login(db, login, password):
     return res or False
 
 def exp_authenticate(db, login, password, user_agent_env):
+    if not user_agent_env:
+        user_agent_env = {}
     res_users = odoo.registry(db)['res.users']
     try:
-        return res_users.authenticate(db, login, password, user_agent_env)
+        return res_users.authenticate(db, login, password, {**user_agent_env, 'interactive': False})
     except AccessDenied:
         return False
 
