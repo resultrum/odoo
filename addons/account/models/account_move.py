@@ -1985,7 +1985,14 @@ class AccountMove(models.Model):
     @api.depends('restrict_mode_hash_table', 'state')
     def _compute_show_reset_to_draft_button(self):
         for move in self:
-            move.show_reset_to_draft_button = not move.restrict_mode_hash_table and move.state in ('posted', 'cancel')
+            move.show_reset_to_draft_button = (
+                    not move.restrict_mode_hash_table
+                    and move.state in self._eligible_states_to_show_reset_to_draft_button()
+            )
+
+    @api.model
+    def _eligible_states_to_show_reset_to_draft_button(self):
+        return ['posted', 'cancel']
 
     @api.depends('company_id.account_fiscal_country_id', 'fiscal_position_id.country_id', 'fiscal_position_id.foreign_vat')
     def _compute_tax_country_id(self):
