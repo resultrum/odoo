@@ -324,6 +324,10 @@ class Module(models.Model):
         self.clear_caches()
         return super(Module, self).unlink()
 
+    def _get_modules_to_load_domain(self):
+        """ Domain to retrieve the modules that should be loaded by the registry. """
+        return [('state', '=', 'installed')]
+
     @staticmethod
     def _check_python_external_dependency(pydep):
         try:
@@ -342,7 +346,6 @@ class Module(models.Model):
         except Exception as e:
             _logger.warning("get_distribution(%s) failed: %s", pydep, e)
             raise Exception('Error finding python library %s' % (pydep,))
-
 
     @staticmethod
     def _check_external_dependencies(terp):
@@ -578,7 +581,7 @@ class Module(models.Model):
         }
 
     def _button_immediate_function(self, function):
-        if getattr(threading.currentThread(), 'testing', False):
+        if getattr(threading.current_thread(), 'testing', False):
             raise RuntimeError(
                 "Module operations inside tests are not transactional and thus forbidden.\n"
                 "If you really need to perform module operations to test a specific behavior, it "

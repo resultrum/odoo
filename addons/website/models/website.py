@@ -342,9 +342,12 @@ class Website(models.Model):
 
     @api.model
     def configurator_recommended_themes(self, industry_id, palette):
-        domain = [('name', '=like', 'theme%'), ('name', 'not in', ['theme_default', 'theme_common'])]
+        domain = [('name', '=like', 'theme%'), ('name', 'not in', ['theme_default', 'theme_common']), ('state', '!=', 'uninstallable')]
         client_themes = request.env['ir.module.module'].search(domain).mapped('name')
-        client_themes_img = dict([(t, http.addons_manifest[t].get('images_preview_theme', {})) for t in client_themes])
+        client_themes_img = dict([
+            (t, http.addons_manifest[t].get('images_preview_theme', {}))
+            for t in client_themes if t in http.addons_manifest
+        ])
         themes_suggested = self._website_api_rpc(
             '/api/website/2/configurator/recommended_themes/%s' % industry_id,
             {'client_themes': client_themes_img}
@@ -1143,7 +1146,6 @@ class Website(models.Model):
         """
 
         router = http.root.get_db_router(request.db)
-        # Force enumeration to be performed as public user
         url_set = set()
 
         sitemap_endpoint_done = set()
@@ -1328,7 +1330,14 @@ class Website(models.Model):
             path = urls.url_quote_plus(request.httprequest.path, safe='/')
         lang_path = ('/' + lang.url_code) if lang != self.default_lang_id else ''
         canonical_query_string = '?%s' % urls.url_encode(canonical_params) if canonical_params else ''
-        return self.get_base_url() + lang_path + path + canonical_query_string
+
+        if lang_path and path == '/':
+            # We want `/fr_BE` not `/fr_BE/` for correct canonical on homepage
+            localized_path = lang_path
+        else:
+            localized_path = lang_path + path
+
+        return self.get_base_url() + localized_path + canonical_query_string
 
     def _get_canonical_url(self, canonical_params):
         """Returns the canonical URL for the current request."""
@@ -1637,7 +1646,7 @@ class Website(models.Model):
         :param limit: maximum number of records fetched per model to build the word list
         :return: yields words
         """
-        match_pattern = '\\w{%s,}' % min(4, len(search) - 3)
+        match_pattern = r'[\w-]{%s,}' % min(4, len(search) - 3)
         similarity_threshold = 0.3
         for search_detail in search_details:
             model_name, fields = search_detail['model'], search_detail['search_fields']
@@ -1648,30 +1657,68 @@ class Website(models.Model):
             fields = set(fields).intersection(model._fields)
 
             unaccent = get_unaccent_sql_wrapper(self.env.cr)
-            similarities = [sql.SQL("word_similarity({search}, {field})").format(
-                search=unaccent(sql.Placeholder('search')),
-                # Specific handling for website.page that inherits its arch_db and name fields
-                # TODO make more generic
-                field=unaccent(sql.SQL("{table}.{field}").format(
-                    table=sql.Identifier((self.env['ir.ui.view'] if field == 'arch_db' or (field == 'name' and 'arch_db' in fields) else model)._table),
-                    field=sql.Identifier(field)
-                ))
-            ) for field in fields]
+
+            # Specific handling for fields being actually part of another model
+            # through the `inherits` mechanism.
+            # It gets the list of fields requested to search upon and that are
+            # actually not part of the requested model itself but part of a
+            # `inherits` model:
+            #     {
+            #       'name': {
+            #           'table': 'ir_ui_view',
+            #           'fname': 'view_id',
+            #       },
+            #       'url': {
+            #           'table': 'ir_ui_view',
+            #           'fname': 'view_id',
+            #       },
+            #       'another_field': {
+            #           'table': 'another_table',
+            #           'fname': 'record_id',
+            #       },
+            #     }
+            inherits_fields = {
+                inherits_model_fname: {
+                    'table': self.env[inherits_model_name]._table,
+                    'fname': inherits_field_name,
+                }
+                for inherits_model_name, inherits_field_name in model._inherits.items()
+                for inherits_model_fname in self.env[inherits_model_name]._fields.keys()
+                if inherits_model_fname in fields
+            }
+
+            similarities = []
+            for field in fields:
+                # Field might belong to another model (`inherits` mechanism)
+                table = inherits_fields[field]['table'] if field in inherits_fields else model._table
+                similarities.append(
+                    sql.SQL("word_similarity({search}, {field})").format(
+                        search=unaccent(sql.Placeholder('search')),
+                        field=unaccent(sql.SQL("{table}.{field}").format(
+                            table=sql.Identifier(table),
+                            field=sql.Identifier(field)
+                        ))
+                    )
+                )
+
             best_similarity = sql.SQL('GREATEST({similarities})').format(
                 similarities=sql.SQL(', ').join(similarities)
             )
 
             from_clause = sql.SQL("FROM {table}").format(table=sql.Identifier(model._table))
-            # Specific handling for website.page that inherits its arch_db and name fields
-            # TODO make more generic
-            if 'arch_db' in fields:
+            # Specific handling for fields being actually part of another model
+            # through the `inherits` mechanism.
+            for table_to_join in {
+                field['table']: field['fname'] for field in inherits_fields.values()
+            }.items():  # Removes duplicate inherits model
                 from_clause = sql.SQL("""
                     {from_clause}
-                    LEFT JOIN {view_table} ON {table}.view_id = {view_table}.id
+                    LEFT JOIN {inherits_table} ON {table}.{inherits_field} = {inherits_table}.id
                 """).format(
                     from_clause=from_clause,
                     table=sql.Identifier(model._table),
-                    view_table=sql.Identifier(self.env['ir.ui.view']._table),
+                    inherits_table=sql.Identifier(table_to_join[0]),
+                    inherits_field=sql.Identifier(table_to_join[1]),
                 )
             query = sql.SQL("""
                 SELECT {table}.id, {best_similarity} AS _best_similarity
@@ -1753,7 +1800,7 @@ class Website(models.Model):
         :param limit: maximum number of records fetched per model to build the word list
         :return: yields words
         """
-        match_pattern = '\\w{%s,}' % min(4, len(search) - 3)
+        match_pattern = r'[\w-]{%s,}' % min(4, len(search) - 3)
         first = escape_psql(search[0])
         for search_detail in search_details:
             model_name, fields = search_detail['model'], search_detail['search_fields']
@@ -1769,7 +1816,14 @@ class Website(models.Model):
                 fields_domain.append([(field, '=ilike', '%%>%s%%' % first)]) # HTML
             domain.append(OR(fields_domain))
             domain = AND(domain)
-            records = model.search_read(domain, fields, limit=1000)
+            perf_limit = 1000
+            records = model.search_read(domain, fields, limit=perf_limit)
+            if len(records) == perf_limit:
+                # Exact match might have been missed because the fetched
+                # results are limited for performance reasons.
+                exact_records, _ = model._search_fetch(search_detail, search, 1, None)
+                if exact_records:
+                    yield search
             for record in records:
                 for field, value in record.items():
                     if isinstance(value, str):

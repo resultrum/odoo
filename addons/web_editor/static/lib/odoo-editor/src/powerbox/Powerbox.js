@@ -12,6 +12,7 @@ function cycle(num, max) {
 
 export class Powerbox {
     constructor(options = {}) {
+        this._active = false;
         this.options = options;
         this.options.width = this.options.width || 340;
         if (!this.options._t) this.options._t = string => string;
@@ -22,7 +23,7 @@ export class Powerbox {
         this.el.style.width = `${this.options.width}px`;
         document.body.append(this.el);
 
-        this.addKeydownTrigger('/', { commands: this.options.commands });
+        this.addHotKey('/', { commands: this.options.commands });
 
         this._mainWrapperElement = document.createElement('div');
         this._mainWrapperElement.className = 'oe-commandbar-mainWrapper';
@@ -131,7 +132,7 @@ export class Powerbox {
                     ev => {
                         ev.preventDefault();
                         ev.stopImmediatePropagation();
-                        this._currentValidate();
+                        this._currentValidate(command);
                     },
                     true,
                 );
@@ -140,14 +141,14 @@ export class Powerbox {
         this._resetPosition();
     }
 
-    addKeydownTrigger(triggerKey, options) {
+    addHotKey(triggerKey, options) {
         this.options.editable.addEventListener(
-            'keydown',
+            'input',
             ev => {
                 const selection = this.options.document.getSelection();
                 if (!selection.isCollapsed || !selection.rangeCount) return;
                 if (
-                    ev.key === triggerKey &&
+                    ev.data === triggerKey &&
                     !this._active &&
                     (!this.options.shouldActivate || this.options.shouldActivate())
                 ) {
@@ -156,6 +157,12 @@ export class Powerbox {
             },
             true,
         );
+    }
+
+    // todo: remove in master. It has been kept when changing addEventListener
+    // keydown to input in stable to avoid removing a public method.
+    addKeydownTrigger(triggerKey, options) {
+        this.addHotKey(triggerKey, options);
     }
 
     open(openOptions) {
@@ -201,8 +208,7 @@ export class Powerbox {
             }
             const term = this._lastText;
 
-            this._currentFilteredCommands =
-                term === '' ? this._currentOpenOptions.commands : await onValueChangeFunction(term);
+            this._currentFilteredCommands = await onValueChangeFunction(term);
             this.render(this._currentFilteredCommands);
         };
         const keydown = ev => {
@@ -254,10 +260,12 @@ export class Powerbox {
 
             this.options.onStop && this.options.onStop();
         };
-        this._currentValidate = () => {
-            const command = this._currentFilteredCommands.find(
-                c => c === this._currentSelectedCommand,
-            );
+        this._currentValidate = (command) => {
+            if (!command) {
+                command = this._currentFilteredCommands.find(
+                    c => c === this._currentSelectedCommand,
+                );
+            }
             if (command) {
                 !command.isIntermediateStep &&
                     (!command.shouldPreValidate || command.shouldPreValidate()) &&
@@ -311,7 +319,10 @@ export class Powerbox {
     // -------------------------------------------------------------------------
 
     _filter(term, commands) {
-        const initalCommands = commands;
+        const initalCommands = commands.filter(c => !c.isDisabled || !c.isDisabled());
+        if (term === '') {
+            return initalCommands;
+        }
         term = term.toLowerCase();
         term = term.replaceAll(/\s/g, '\\s');
         const regex = new RegExp(
@@ -319,6 +330,7 @@ export class Powerbox {
                 .split('')
                 .map(c => c.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&'))
                 .join('.*'),
+            'i'
         );
         if (term.length) {
             commands = initalCommands.filter(command => {

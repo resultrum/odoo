@@ -34,7 +34,7 @@ msgstr "(محسوبة:"
 #. module: delivery
 #: model_terms:ir.ui.view,arch_db:delivery.choose_delivery_carrier_view_form
 msgid "<i class=\"fa fa-arrow-right mr-1\"/>Get rate"
-msgstr ""
+msgstr "<i class=\"fa fa-arrow-right mr-1\"/>سعر الحصول "
 
 #. module: delivery
 #: code:addons/delivery/models/delivery_carrier.py:0
@@ -60,7 +60,7 @@ msgstr ""
 #. module: delivery
 #: model_terms:ir.ui.view,arch_db:delivery.view_delivery_carrier_form
 msgid "<span class=\"text-danger\">No debug</span>"
-msgstr ""
+msgstr "<span class=\"text-danger\">بلا تصحيح</span>"
 
 #. module: delivery
 #: model_terms:ir.ui.view,arch_db:delivery.view_delivery_carrier_form
@@ -745,7 +745,7 @@ msgstr "يمكن الوصول إلى بطاقة عنوان المنتج المُ
 #. module: delivery
 #: model:ir.model,name:delivery.model_stock_return_picking
 msgid "Return Picking"
-msgstr "استلام الطلبية المرجعة "
+msgstr "إرجاع الشحنة المنتقاة "
 
 #. module: delivery
 #: model:ir.model.fields,field_description:delivery.field_delivery_price_rule__list_base_price

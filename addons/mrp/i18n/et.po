@@ -8,7 +8,6 @@
 # Andre Roomet <andreroomet@gmail.com>, 2022
 # Gert Valdek <gert@airobot.ee>, 2022
 # Arma Gedonsky <armagedonsky@hot.ee>, 2022
-# Rivo Zängov <eraser@eraser.ee>, 2022
 # Egon Raamat <egon@avalah.ee>, 2022
 # Helen Sulaoja <helen@avalah.ee>, 2022
 # Piia Paurson <piia@avalah.ee>, 2022
@@ -17,6 +16,9 @@
 # Martin Trigaux, 2022
 # Algo Kärp <algokarp@gmail.com>, 2022
 # Eneli Õigus <enelioigus@gmail.com>, 2022
+# Rivo Zängov <eraser@eraser.ee>, 2022
+# Leaanika Randmets, 2022
+# Jana Jaakson, 2022
 # 
 msgid ""
 msgstr ""
@@ -24,7 +26,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-24 08:19+0000\n"
 "PO-Revision-Date: 2021-09-14 12:24+0000\n"
-"Last-Translator: Eneli Õigus <enelioigus@gmail.com>, 2022\n"
+"Last-Translator: Jana Jaakson, 2022\n"
 "Language-Team: Estonian (https://www.transifex.com/odoo/teams/41243/et/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -100,12 +102,6 @@ msgid "%s %s unbuilt in"
 msgstr ""
 
 #. module: mrp
-#: code:addons/mrp/models/mrp_routing.py:0
-#, python-format
-msgid "%s (copy)"
-msgstr "%s (koopia)"
-
-#. module: mrp
 #: code:addons/mrp/models/mrp_bom.py:0
 #, python-format
 msgid "%s (new) %s"
@@ -131,7 +127,7 @@ msgstr ""
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.view_immediate_production
 msgid "&gt;"
-msgstr ""
+msgstr "&gt;"
 
 #. module: mrp
 #: model:ir.actions.report,print_report_name:mrp.action_report_bom_structure
@@ -153,7 +149,7 @@ msgstr "'Tootmistellimus - %s' % object.name"
 #: code:addons/mrp/models/stock_rule.py:0
 #, python-format
 msgid "+ %d day(s)"
-msgstr ""
+msgstr "+ %d päev(a)"
 
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.exception_on_mo
@@ -1111,7 +1107,7 @@ msgstr "Koostisosa"
 #: code:addons/mrp/models/mrp_production.py:0
 #, python-format
 msgid ""
-"Component Lots must be unique for mass production. Please review consumption"
+"Component Lots must be unique for mass production. Please review reservation"
 " for:\n"
 msgstr ""
 
@@ -1265,7 +1261,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:mrp.field_mrp_bom_byproduct__cost_share
 #: model:ir.model.fields,field_description:mrp.field_stock_move__cost_share
 msgid "Cost Share (%)"
-msgstr ""
+msgstr "Kulude osakaal (%)"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_workcenter__costs_hour
@@ -2015,7 +2011,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__has_message
 #: model:ir.model.fields,field_description:mrp.field_mrp_unbuild__has_message
 msgid "Has Message"
-msgstr ""
+msgstr "On sõnum"
 
 #. module: mrp
 #: model:ir.model.fields.selection,name:mrp.selection__mrp_document__priority__2
@@ -2269,6 +2265,14 @@ msgstr "Kas praegune kasutaja töötab"
 #, python-format
 msgid "It has already been unblocked."
 msgstr "See on juba blokeeringust vabastatud."
+
+#. module: mrp
+#: code:addons/mrp/models/mrp_workorder.py:0
+#, python-format
+msgid ""
+"It is not possible to unplan one single Work Order. You should unplan the "
+"Manufacturing Order instead in order to unplan all the linked operations."
+msgstr ""
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__is_planned
@@ -2832,7 +2836,7 @@ msgstr "Planeeri tootmistellimusi"
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__my_activity_date_deadline
 #: model:ir.model.fields,field_description:mrp.field_mrp_unbuild__my_activity_date_deadline
 msgid "My Activity Deadline"
-msgstr ""
+msgstr "Minu tegevuse tähtaeg"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_document__name
@@ -2859,7 +2863,7 @@ msgstr "Järgmine tegevus"
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__activity_calendar_event_id
 #: model:ir.model.fields,field_description:mrp.field_mrp_unbuild__activity_calendar_event_id
 msgid "Next Activity Calendar Event"
-msgstr ""
+msgstr "Järgmine tegevus kalendris"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__activity_date_deadline
@@ -2972,6 +2976,14 @@ msgid ""
 msgstr ""
 
 #. module: mrp
+#: code:addons/mrp/models/product.py:0 code:addons/mrp/models/product.py:0
+#, python-format
+msgid ""
+"Note that product(s): '%s' is/are still linked to active Bill of Materials, "
+"which means that the product can still be used on it/them."
+msgstr ""
+
+#. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_bom__message_needaction_counter
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__message_needaction_counter
 #: model:ir.model.fields,field_description:mrp.field_mrp_unbuild__message_needaction_counter
@@ -3022,12 +3034,20 @@ msgstr "Kohaletoimetamise veateatega sõnumite arv"
 #. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_workcenter__capacity
 msgid ""
-"Number of pieces that can be produced in parallel. In case the work center "
-"has a capacity of 5 and you have to produce 10 units on your work order, the"
-" usual operation time will be multiplied by 2."
+"Number of pieces (in product UoM) that can be produced in parallel  (at the "
+"same time) at this work center. For example: the capacity is 5 and you need "
+"to produce 10 units, then the operation time listed on the BOM will be "
+"multiplied by two. However, note that both time before and after production "
+"will only be counted once. "
 msgstr ""
-"Paralleelselt toodetavate tükkide arv. Kui töökeskuse maht on 5 ja teil on "
-"töökäsuga vaja toota 10 tk, korrutatakse tavapärane tegevus 2ga."
+
+#. module: mrp
+#: model:ir.model.fields,help:mrp.field_mrp_bom__product_qty
+msgid ""
+"This should be the smallest quantity that this product can be produced in. "
+"If the BOM contains operations, make sure the work center capacity is "
+"accurate. "
+msgstr ""
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__mrp_production_source_count
@@ -4445,6 +4465,12 @@ msgid ""
 msgstr "Valitud toote mõõtühikul on teine kategooria kui toote vormis."
 
 #. module: mrp
+#: code:addons/mrp/models/mrp_workcenter.py:0
+#, python-format
+msgid "The Workorder (%s) cannot be started twice!"
+msgstr ""
+
+#. module: mrp
 #: code:addons/mrp/models/mrp_bom.py:0
 #, python-format
 msgid ""
@@ -4511,6 +4537,15 @@ msgstr ""
 "palun parandage see, et salvestada töökäsk."
 
 #. module: mrp
+#: code:addons/mrp/models/mrp_bom.py:0
+#, python-format
+msgid ""
+"The product has already been used at least once, editing its structure may "
+"lead to undesirable behaviours. You should rather archive the product and "
+"create a new one with a new bill of materials."
+msgstr ""
+
+#. module: mrp
 #: code:addons/mrp/models/mrp_production.py:0
 #, python-format
 msgid "The quantity produced of by-products must be positive."
@@ -4528,6 +4563,15 @@ msgstr "Toodetav kogus peab olema positiivne!"
 #: model:ir.model.fields,help:mrp.field_mrp_document__res_id
 msgid "The record id this is attached to."
 msgstr "Kirje id, millele see on lisatud."
+
+#. module: mrp
+#: code:addons/mrp/models/mrp_unbuild.py:0
+#: code:addons/mrp/models/mrp_unbuild.py:0
+#, python-format
+msgid ""
+"The selected serial number does not correspond to the one used in the "
+"manufacturing order, please select another one."
+msgstr ""
 
 #. module: mrp
 #: code:addons/mrp/models/mrp_production.py:0

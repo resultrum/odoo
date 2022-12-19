@@ -317,6 +317,10 @@
         </form>
     </t>
     <t t-name="wysiwyg.widgets.font-icons.icons">
+        <div t-if="!iconsParser.length" class="o_nocontent_help">
+            <p class="o_empty_folder_image">No pictograms found.</p>
+            <p class="o_empty_folder_subtitle">Try searching with other keywords.</p>
+        </div>
         <t t-as="data" t-foreach="iconsParser">
             <span t-foreach="data.cssData" t-as="cssData"
                 t-att-data-id="cssData.names[0]"
@@ -351,7 +355,7 @@
                     <div class="o_youtube_option o_vimeo_option">
                         <label class="o_switch mb0"><input id="o_video_loop" type="checkbox"/><span/>Loop</label>
                     </div>
-                    <div class="o_youtube_option o_dailymotion_option">
+                    <div class="o_youtube_option o_dailymotion_option o_vimeo_option">
                         <label class="o_switch mb0"><input id="o_video_hide_controls" type="checkbox"/><span/>Hide player controls</label>
                     </div>
                     <div class="o_youtube_option">

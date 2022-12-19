@@ -4,7 +4,7 @@
 # 
 # Translators:
 # Martin Trigaux, 2021
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022
+# Alina Lisnenko <alina.lisnenko@erp.co.ua>, 2022
 # 
 msgid ""
 msgstr ""
@@ -12,7 +12,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-10-05 10:53+0000\n"
 "PO-Revision-Date: 2021-09-14 12:22+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022\n"
+"Last-Translator: Alina Lisnenko <alina.lisnenko@erp.co.ua>, 2022\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3326,6 +3326,18 @@ msgstr ""
 "Перевірте також відпустки, які очікують на перевірку."
 
 #. module: hr_holidays
+#: code:addons/hr_holidays/models/hr_leave.py:0
+#, python-format
+msgid ""
+"\n"
+"The employees that lack allocation days are:\n"
+"%s"
+msgstr ""
+"\n"
+"Працівники, яким бракує розподільних днів, це:\n"
+"%s"
+
+#. module: hr_holidays
 #: model:ir.model.constraint,message:hr_holidays.constraint_hr_leave_date_check2
 msgid "The start date must be anterior to the end date."
 msgstr "Початкова дата повинна бути раніше за кінцеву"
@@ -4043,6 +4055,15 @@ msgstr ""
 "Ви не можете видалити запит на бронювання, який знаходиться у статусі %s."
 
 #. module: hr_holidays
+#: code:addons/hr_holidays/models/hr_leave_allocation.py:0
+#, python-format
+msgid ""
+"You cannot delete an allocation request which has some validated leaves."
+msgstr ""
+"Ви не можете видалити запит на розпоідлення, який вже має деякі затверджені "
+"відпустки."
+
+#. module: hr_holidays
 #: code:addons/hr_holidays/models/hr_leave.py:0
 #, python-format
 msgid ""
@@ -4058,6 +4079,22 @@ msgstr ""
 msgid ""
 "You don't have the rights to apply second approval on a time off request"
 msgstr "У вас немає прав застосувати друге затвердження запиту на відпустку"
+
+#. module: hr_holidays
+#: code:addons/hr_holidays/models/hr_leave.py:0
+#, python-format
+msgid ""
+"You have several allocations for those type and period.\n"
+"Please split your request to fit in their number of days."
+msgstr ""
+"У вас є кілька розподілів для цього типу та періоду.\n"
+"Розділіть запит відповідно до кількості днів."
+
+#. module: hr_holidays
+#: code:addons/hr_holidays/models/hr_leave.py:0
+#, python-format
+msgid "You must be %s\\'s Manager to approve this leave"
+msgstr "Ви повинні бути менеджеро %s, щоб затвердити цю відпустку"
 
 #. module: hr_holidays
 #: code:addons/hr_holidays/models/hr_leave.py:0

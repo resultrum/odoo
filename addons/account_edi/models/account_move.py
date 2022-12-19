@@ -159,6 +159,7 @@ class AccountMove(models.Model):
                 tax_details['base_amount_currency'] += tax_values['base_amount_currency']
         tax_details['tax_amount'] += tax_values['tax_amount']
         tax_details['tax_amount_currency'] += tax_values['tax_amount_currency']
+        tax_details['exemption_reason'] = tax_values['tax_id'].name
         tax_details['group_tax_details'].append(tax_values)
 
     def _prepare_edi_tax_details(self, filter_to_apply=None, filter_invl_to_apply=None, grouping_key_generator=None, compute_mode='tax_details'):
@@ -286,12 +287,15 @@ class AccountMove(models.Model):
                 invoice_lines_tax_values_dict[invoice_line] = []
                 rate = abs(invoice_line.balance) / abs(invoice_line.amount_currency) if invoice_line.amount_currency else 0.0
                 for tax_res in taxes_res['taxes']:
+                    tax_amount = tax_res['amount'] * rate
+                    if self.company_id.tax_calculation_rounding_method == 'round_per_line':
+                        tax_amount = invoice_line.company_currency_id.round(tax_amount)
                     invoice_lines_tax_values_dict[invoice_line].append({
                         'base_line_id': invoice_line,
                         'tax_id': self.env['account.tax'].browse(tax_res['id']),
                         'tax_repartition_line_id': self.env['account.tax.repartition.line'].browse(tax_res['tax_repartition_line_id']),
                         'base_amount': sign * invoice_line.company_currency_id.round(tax_res['base'] * rate),
-                        'tax_amount': sign * invoice_line.company_currency_id.round(tax_res['amount'] * rate),
+                        'tax_amount': sign * tax_amount,
                         'base_amount_currency': sign * tax_res['base'],
                         'tax_amount_currency': sign * tax_res['amount'],
                     })
@@ -559,6 +563,7 @@ class AccountMove(models.Model):
         '''
         to_cancel_documents = self.env['account.edi.document']
         for move in self:
+            move._check_fiscalyear_lock_date()
             is_move_marked = False
             for doc in move.edi_document_ids:
                 if doc.edi_format_id._needs_web_services() \
@@ -616,9 +621,12 @@ class AccountMove(models.Model):
     # Business operations
     ####################################################
 
-    def action_process_edi_web_services(self):
+    def button_process_edi_web_services(self):
+        self.action_process_edi_web_services(with_commit=False)
+
+    def action_process_edi_web_services(self, with_commit=True):
         docs = self.edi_document_ids.filtered(lambda d: d.state in ('to_send', 'to_cancel') and d.blocking_level != 'error')
-        docs._process_documents_web_services()
+        docs._process_documents_web_services(with_commit=with_commit)
 
     def _retry_edi_documents_error_hook(self):
         ''' Hook called when edi_documents are retried. For example, when it's needed to clean a field.
@@ -662,7 +670,9 @@ class AccountMoveLine(models.Model):
             'price_subtotal_unit': self.currency_id.round(self.price_subtotal / self.quantity) if self.quantity else 0.0,
             'price_total_unit': self.currency_id.round(self.price_total / self.quantity) if self.quantity else 0.0,
             'price_discount': gross_price_subtotal - self.price_subtotal,
+            'price_discount_unit': (gross_price_subtotal - self.price_subtotal) / self.quantity if self.quantity else 0.0,
             'gross_price_total_unit': self.currency_id.round(gross_price_subtotal / self.quantity) if self.quantity else 0.0,
+            'unece_uom_code': self.product_id.product_tmpl_id.uom_id._get_unece_code(),
         }
         return res
 
