@@ -242,7 +242,7 @@ class StockWarehouseOrderpoint(models.Model):
                 orderpoint.qty_forecast = False
                 continue
             orderpoint_context = orderpoint._get_product_context()
-            product_context = frozendict({**self.env.context, **orderpoint_context})
+            product_context = frozendict({**orderpoint_context})
             orderpoints_contexts[product_context] |= orderpoint
         for orderpoint_context, orderpoints_by_context in orderpoints_contexts.items():
             products_qty = {
@@ -331,7 +331,7 @@ class StockWarehouseOrderpoint(models.Model):
         qty_by_product_warehouse = self.env['report.stock.quantity'].read_group(
             [('date', '=', to_date), ('state', '=', 'forecast')],
             ['product_id', 'product_qty', 'warehouse_id'],
-            ['product_id', 'warehouse_id'], lazy=False)
+            ['product_id', 'warehouse_id'], orderby="id", lazy=False)
         for group in qty_by_product_warehouse:
             warehouse_id = group.get('warehouse_id') and group['warehouse_id'][0]
             if group['product_qty'] >= 0.0 or not warehouse_id:
