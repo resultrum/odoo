@@ -138,7 +138,7 @@ def update_taxes_from_templates(cr, chart_template_xmlid):
         )
 
     env = api.Environment(cr, SUPERUSER_ID, {})
-    chart_template_id = env['ir.model.data'].xmlid_to_res_id(chart_template_xmlid)
+    chart_template_id = env['ir.model.data']._xmlid_to_res_id(chart_template_xmlid)
     companies = env['res.company'].search([('chart_template_id', '=', chart_template_id)])
     outdated_taxes = []
     for company in companies:
