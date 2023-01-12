@@ -580,7 +580,6 @@ class AccountMove(models.Model):
             self.invoice_vendor_bill_id = False
             self._recompute_dynamic_lines()
 
-
     @api.onchange('invoice_line_ids')
     def _onchange_invoice_line_ids(self):
         current_invoice_lines = self.line_ids.filtered(lambda line: not line.exclude_from_invoice_tab)
@@ -985,6 +984,9 @@ class AccountMove(models.Model):
 
         _apply_cash_rounding(self, diff_balance, diff_amount_currency, existing_cash_rounding_line)
 
+    def _get_default_account(self):
+        return self.env['account.account']
+
     def _recompute_payment_terms_lines(self):
         ''' Compute the dynamic payment term lines of the journal entry.'''
         self.ensure_one()
@@ -1009,9 +1011,12 @@ class AccountMove(models.Model):
             :param payment_terms_lines:     The current payment terms lines.
             :return:                        An account.account record.
             '''
+            default_account = self._get_default_account()
             if payment_terms_lines:
                 # Retrieve account from previous payment terms lines in order to allow the user to set a custom one.
                 return payment_terms_lines[0].account_id
+            elif default_account:
+                return default_account
             elif self.partner_id:
                 # Retrieve account from partner.
                 if self.is_sale_document(include_receipts=True):
