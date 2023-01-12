@@ -2629,21 +2629,26 @@ class AccountMove(models.Model):
         self.ensure_one()
         name = ''
         if self.state == 'draft':
-            name += {
-                'out_invoice': _('Draft Invoice'),
-                'out_refund': _('Draft Credit Note'),
-                'in_invoice': _('Draft Bill'),
-                'in_refund': _('Draft Vendor Credit Note'),
-                'out_receipt': _('Draft Sales Receipt'),
-                'in_receipt': _('Draft Purchase Receipt'),
-                'entry': _('Draft Entry'),
-            }[self.move_type]
+            move_types = self.get_move_types()
+            name += move_types[self.move_type]
             name += ' '
         if not self.name or self.name == '/':
             name += '(* %s)' % str(self.id)
         else:
             name += self.name
         return name + (show_ref and self.ref and ' (%s%s)' % (self.ref[:50], '...' if len(self.ref) > 50 else '') or '')
+
+    @api.model
+    def get_move_types(self):
+        return {
+            'out_invoice': _('Draft Invoice'),
+            'out_refund': _('Draft Credit Note'),
+            'in_invoice': _('Draft Bill'),
+            'in_refund': _('Draft Vendor Credit Note'),
+            'out_receipt': _('Draft Sales Receipt'),
+            'in_receipt': _('Draft Purchase Receipt'),
+            'entry': _('Draft Entry'),
+        }
 
     def _get_invoice_delivery_partner_id(self):
         ''' Hook allowing to retrieve the right delivery address depending of installed modules.
