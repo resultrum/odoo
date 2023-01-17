@@ -46,7 +46,12 @@ def update_taxes_from_templates(cr, chart_template_xmlid):
             xml_id = old_tax.get_xml_id().get(old_tax.id)
             if xml_id:
                 _remove_xml_id(xml_id)
-        chart_template.create_record_with_xmlid(company, template, "account.tax", template_vals)
+        res = chart_template._create_or_update_xml_id(company, template, "account.tax", template_vals)
+        if res:
+            _update_tax_from_template(template, res)
+        else:
+            chart_template.create_record_with_xmlid(company, template, "account.tax", template_vals)
+
 
     def _update_tax_from_template(template, tax):
         # -> update the tax : we only updates tax tags
@@ -126,18 +131,18 @@ def update_taxes_from_templates(cr, chart_template_xmlid):
         for account_tax in taxes_to_check:
             message_body += f"<li>{html_escape(account_tax.name)}</li>"
         message_body += "</ul>"
-        partner_managers_ids.message_post(
-            subject=_('Your taxes have been updated !'),
-            author_id=odoobot.id,
-            body=message_body,
-            message_type='notification',
-            subtype_xmlid='mail.mt_comment',
-            partner_ids=[partner.id for partner in partner_managers_ids],
-        )
+        for partner in partner_managers_ids:
+            partner.message_post(
+                subject=_('Your taxes have been updated !'),
+                author_id=odoobot.id,
+                body=message_body,
+                message_type='notification',
+                subtype_xmlid='mail.mt_comment',
+                partner_ids=partner_managers_ids.ids,
+            )
 
     env = api.Environment(cr, SUPERUSER_ID, {})
     chart_template_id = env['ir.model.data'].xmlid_to_res_id(chart_template_xmlid)
-    print(chart_template_id)
     companies = env['res.company'].search([('chart_template_id', '=', chart_template_id)])
     outdated_taxes = []
     for company in companies:
@@ -724,6 +729,39 @@ class AccountChartTemplate(models.Model):
             xml_id = "%s.%s_%s" % (module, company.id, name)
             data_list.append(dict(xml_id=xml_id, values=vals, noupdate=True))
         return self.env[model]._load_records(data_list)
+
+    def _create_or_update_xml_id(self, company, template, model, vals):
+        res = False
+        if not vals:
+            return res
+        name = vals['name']
+        company_id = vals['company_id']
+        type_tax_use = vals['type_tax_use']
+        tax = self.env[model].sudo().with_context(active_test=False).search(
+            [('name', '=', name), ('company_id', '=', company_id), ('type_tax_use', '=', type_tax_use)]
+        )
+        if tax:
+            res = tax
+            tax_xml_id = tax.get_xml_id().get(tax.id)
+            template_xml_id = template.get_xml_id().get(template.id)
+            module, name =template_xml_id.split('.', 1)
+            data_vals = {
+                'module': module,
+                'name': "%s_%s" % (company.id, name),
+                'res_id': tax.id,
+                'model': model,
+                'noupdate': True
+
+            }
+            if tax_xml_id:
+                module, name = tax_xml_id.split(".", 1)
+                data = self.env['ir.model.data'].search([('module', '=', module), ('name', '=', name)])
+                data.write(data_vals)
+            else:
+                self.env['ir.model.data'].create(data_vals)
+
+        return res
+
 
     @api.model
     def _load_records(self, data_list, update=False):
