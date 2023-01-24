@@ -722,11 +722,17 @@ class Partner(models.Model):
     def _get_contact_name(self, partner, name):
         return "%s, %s" % (partner.commercial_company_name or partner.sudo().parent_id.name, name)
 
+    def get_name_additional_info(self):
+        self.ensure_one()
+        return ''
+
     def _get_name(self):
         """ Utility method to allow name_get to be overrided without re-browse the partner """
         partner = self
         name = partner.name or ''
-
+        additional_info = self.get_name_additional_info()
+        if additional_info:
+            name = '{} - {}'.format(name, additional_info)
         if partner.company_name or partner.parent_id:
             if not name and partner.type in ['invoice', 'delivery', 'other']:
                 name = dict(self.fields_get(['type'])['type']['selection'])[partner.type]
