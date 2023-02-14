@@ -423,7 +423,7 @@
       <field name="sequence">1</field>
       <field name="parent_id" ref="account_tax_report_line_1_assessment_taxable_turnover"/>
       <field name="country_id" ref="base.lu"/>
-       <field name="formula">LUTAX_454 + LUTAX_455 + LUTAX_456</field>
+       <field name="formula">LUTAX_471 + LUTAX_021 + LUTAX_037 - LUTAX_456 - LUTAX_455 - LUTAX_471 + LUTAX_455 + LUTAX_456</field>
     </record>
 
 
@@ -440,7 +440,7 @@
         <field name="parent_id" ref="account_tax_report_line_1a_overall_turnover"/>
         <field name="country_id" ref="base.lu"/>
         <field name="code">LUTAX_454</field>
-        <field name="formula">LUTAX_471 + LUTAX_472</field>
+        <field name="formula">LUTAX_471 + LUTAX_021 + LUTAX_037 - LUTAX_456 - LUTAX_455 - LUTAX_471</field>
     </record>
 
     <!-- 471 not managed, only 472 is filled in -->
@@ -667,7 +667,7 @@
       <field name="name">IV.C. Exceeding amount (105)</field>
       <field name="sequence">3</field>
       <field name="parent_id" ref="account_tax_report_line_4_tax_tobe_paid_or_reclaimed"/>
-      <field name="formula">LUTAX_103 - LUTAX_102</field>
+      <field name="formula">LUTAX_046 + LUTAX_056 + LUTAX_407 + LUTAX_410 + LUTAX_768 + LUTAX_227 - LUTAX_458+LUTAX_459+LUTAX_460+LUTAX_090+LUTAX_461+LUTAX_092+LUTAX_228+LUTAX_094+LUTAX_095</field>
       <field name="country_id" ref="base.lu"/>
     </record>
 
@@ -676,6 +676,7 @@
       <field name="name">IV.A. Total tax due (103)</field>
       <field name="sequence">1</field>
       <field name="parent_id" ref="account_tax_report_line_4_tax_tobe_paid_or_reclaimed"/>
+        <field name="code">LUTAX_103</field>
       <field name="formula">LUTAX_046 + LUTAX_056 + LUTAX_407 + LUTAX_410 + LUTAX_768 + LUTAX_227</field>
       <field name="country_id" ref="base.lu"/>
     </record>
@@ -742,7 +743,7 @@
       <field name="name">II.H. Total tax due (076)</field>
       <field name="sequence">13</field>
       <field name="parent_id" ref="account_tax_report_line_2_assesment_of_tax_due"/>
-      <field name="formula">LUTAX_103</field>
+      <field name="formula">LUTAX_046 + LUTAX_056 + LUTAX_407 + LUTAX_410 + LUTAX_768 + LUTAX_227</field>
       <field name="country_id" ref="base.lu"/>
     </record>
 
@@ -1208,7 +1209,7 @@
       <field name="name">IV.B. Total input tax deductible (104)</field>
       <field name="sequence">2</field>
       <field name="parent_id" ref="account_tax_report_line_4_tax_tobe_paid_or_reclaimed"/>
-      <field name="formula">LUTAX_102</field>
+      <field name="formula">LUTAX_458+LUTAX_459+LUTAX_460+LUTAX_090+LUTAX_461+LUTAX_092+LUTAX_228+LUTAX_094+LUTAX_095</field>
       <field name="country_id" ref="base.lu"/>
     </record>
 
