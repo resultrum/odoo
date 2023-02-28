@@ -53,8 +53,9 @@ import {
     rightLeafOnlyNotBlockPath,
     isBlock,
     isMacOS,
-    childNodeIndex,
-    getSelectedNodes
+    isVoidElement,
+    cleanZWS,
+    isZWS,
 } from './utils/utils.js';
 import { editorCommands } from './commands/commands.js';
 import { Powerbox } from './powerbox/Powerbox.js';
@@ -147,7 +148,7 @@ export const CLIPBOARD_WHITELISTS = {
         /^btn/,
         /^fa/,
     ],
-    attributes: ['class', 'href', 'src'],
+    attributes: ['class', 'href', 'src', 'target'],
     styledTags: ['SPAN', 'B', 'STRONG', 'I', 'S', 'U', 'FONT'],
     styles: {
         'text-decoration': { defaultValues: ['', 'none'] },
@@ -304,6 +305,9 @@ export class OdooEditor extends EventTarget {
         this.idSet(editable);
         this._historyStepsActive = true;
         this.historyReset();
+        if (this.options.initialHistoryId) {
+            this.historySetInitialId(this.options.initialHistoryId);
+        }
 
         this._pluginCall('sanitizeElement', [editable]);
 
@@ -675,13 +679,37 @@ export class OdooEditor extends EventTarget {
         this._firstStepId = firstStep.id;
         this._historySnapshots = [{ step: firstStep }];
         this._historySteps.push(firstStep);
+        // The historyIds carry the ids of the steps that were dropped when
+        // doing a snapshot.
+        // Those historyIds are used to compare if the last step saved in the
+        // server is present in the current historySteps or historyIds to
+        // ensure it is the same history branch.
+        this._historyIds = [];
+    }
+    /**
+     * Set the initial document history id.
+     *
+     * To prevent a saving a document with a diverging history, we store the
+     * last history id in the first node of the document to the database.
+     * This method provide the initial document history id to the editor.
+     */
+    historySetInitialId(id) {
+        this._historyIds.unshift(id);
+    }
+    /**
+     * Get all the history ids for the current history branch.
+     *
+     * See `_historyIds` in `historyReset`.
+     */
+    historyGetBranchIds() {
+        return this._historyIds.concat(this._historySteps.map(s => s.id));
     }
     historyGetSnapshotSteps() {
         // If the current snapshot has no time, it means that there is the no
         // other snapshot that have been made (either it is the one created upon
         // initialization or reseted by historyResetFromSteps).
         if (!this._historySnapshots[0].time) {
-            return this._historySteps;
+            return { steps: this._historySteps, historyIds: this.historyGetBranchIds() };
         }
         const steps = [];
         let snapshot;
@@ -700,9 +728,10 @@ export class OdooEditor extends EventTarget {
         steps.push(snapshot.step);
         steps.reverse();
 
-        return steps;
+        return { steps, historyIds: this.historyGetBranchIds() };
     }
-    historyResetFromSteps(steps) {
+    historyResetFromSteps(steps, historyIds) {
+        this._historyIds = historyIds;
         this.observerUnactive();
         for (const node of [...this.editable.childNodes]) {
             node.remove();
@@ -1707,7 +1736,8 @@ export class OdooEditor extends EventTarget {
         this.observerUnactive('_activateContenteditable');
         this.editable.setAttribute('contenteditable', this.options.isRootEditable);
 
-        for (const node of this.options.getContentEditableAreas(this)) {
+        const editableAreas = this.options.getContentEditableAreas(this).filter(node => !isVoidElement(node));
+        for (const node of editableAreas) {
             if (!node.isContentEditable) {
                 node.setAttribute('contenteditable', true);
             }
@@ -1969,7 +1999,7 @@ export class OdooEditor extends EventTarget {
                 this._beforeCommandbarStepIndex = this._historySteps.length - 1;
             },
             preValidate: () => {
-                this._historyRevertUntil(this._beforeCommandbarStepIndex);
+                this.historyRevertUntil(this._beforeCommandbarStepIndex);
                 this.historyStep(true);
                 this._historyStepsStates.set(peek(this._historySteps).id, 'consumed');
                 setTimeout(() => {
@@ -1984,7 +2014,7 @@ export class OdooEditor extends EventTarget {
         });
     }
 
-    _historyRevertUntil (toStepIndex) {
+    historyRevertUntil (toStepIndex) {
         const lastStep = this._currentStep;
         this.historyRevert(lastStep);
         let stepIndex = this._historySteps.length - 1;
@@ -2820,14 +2850,14 @@ export class OdooEditor extends EventTarget {
         // we only remove the attribute to ensure we don't break some style.
         // Otherwise we remove the entire inline element.
         for (const emptyElement of element.querySelectorAll('[oe-zws-empty-inline]')) {
-            if (emptyElement.textContent.length === 1 && emptyElement.textContent.includes('\u200B')) {
+            if (isZWS(emptyElement)) {
                 if (emptyElement.classList.length > 0) {
                     emptyElement.removeAttribute('oe-zws-empty-inline');
                 } else {
                     emptyElement.remove();
                 }
             } else {
-                emptyElement.textContent = emptyElement.textContent.replace('\u200B', '');
+                cleanZWS(emptyElement);
                 emptyElement.removeAttribute('oe-zws-empty-inline');
             }
         }
@@ -2844,10 +2874,10 @@ export class OdooEditor extends EventTarget {
             el.removeAttribute('oe-keep-contenteditable');
         }
 
-        // Remove Zero Width Spzces on Font awesome elements
+        // Remove Zero Width Spaces on Font awesome elements
         const faSelector = 'i.fa,span.fa,i.fab,span.fab,i.fad,span.fad,i.far,span.far';
         for (const el of element.querySelectorAll(faSelector)) {
-            el.textContent = el.textContent.replace('\u200B', '');
+            cleanZWS(el);
         }
 
     }
@@ -3228,7 +3258,7 @@ export class OdooEditor extends EventTarget {
                     ];
 
                     const execCommandAtStepIndex = (index, callback) => {
-                        this._historyRevertUntil(index);
+                        this.historyRevertUntil(index);
                         this.historyStep(true);
                         this._historyStepsStates.set(peek(this._historySteps).id, 'consumed');
 

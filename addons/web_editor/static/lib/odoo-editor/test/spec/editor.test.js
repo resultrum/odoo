@@ -1153,6 +1153,11 @@ X[]
                     // JW cAfter: '<p>[]def</p>',
                     contentAfter: '<h1>[]<br></h1><p>def</p>',
                 });
+                await testEditor(BasicEditor, {
+                    contentBefore: '<h1>[abc</h1><p>]<br></p><p>def</p>',
+                    stepFunction: deleteForward,
+                    contentAfter: '<h1>[]<br></h1><p><br></p><p>def</p>',
+                });
             });
             it('should empty an inline unremovable but remain in it', async () => {
                 await testEditor(BasicEditor, {
@@ -2372,6 +2377,11 @@ X[]
                     // JW cAfter: '<p>[]def</p>',
                     contentAfter: '<h1>[]<br></h1><p>def</p>',
                 });
+                await testEditor(BasicEditor, {
+                    contentBefore: '<h1>[abc</h1><p>]<br></p><p>def</p>',
+                    stepFunction: deleteBackward,
+                    contentAfter: '<h1>[]<br></h1><p><br></p><p>def</p>',
+                });
             });
             it('should delete last character of paragraph, ignoring the selected paragraph break', async () => {
                 await testEditor(BasicEditor, {
@@ -2381,6 +2391,14 @@ X[]
                     // doesn't remove a paragraph break.
                     stepFunction: deleteBackward,
                     contentAfter: '<p>ab[]</p><p>def</p>',
+                });
+                await testEditor(BasicEditor, {
+                    contentBefore: '<p>ab[c</p><p>]<br></p><p>def</p>',
+                    // This type of selection (typically done with a triple
+                    // click) is "corrected" before remove so triple clicking
+                    // doesn't remove a paragraph break.
+                    stepFunction: deleteBackward,
+                    contentAfter: '<p>ab[]</p><p><br></p><p>def</p>',
                 });
             });
             it('should delete first character of paragraph, as well as selected paragraph break', async () => {
@@ -2398,6 +2416,22 @@ X[]
                     // doesn't remove a paragraph break.
                     stepFunction: deleteBackward,
                     contentAfter: '<p>ab[]</p><p t="unbreak">def</p>',
+                });
+                await testEditor(BasicEditor, {
+                    contentBefore: '<p>ab[c</p><p t="unbreak">]<br></p><p>def</p>',
+                    // This type of selection (typically done with a triple
+                    // click) is "corrected" before remove so triple clicking
+                    // doesn't remove a paragraph break.
+                    stepFunction: deleteBackward,
+                    contentAfter: '<p>ab[]</p><p t="unbreak"><br></p><p>def</p>',
+                });
+                await testEditor(BasicEditor, {
+                    contentBefore: '<p>ab[c</p><p>]<br></p><p t="unbreak">def</p>',
+                    // This type of selection (typically done with a triple
+                    // click) is "corrected" before remove so triple clicking
+                    // doesn't remove a paragraph break.
+                    stepFunction: deleteBackward,
+                    contentAfter: '<p>ab[]</p><p><br></p><p t="unbreak">def</p>',
                 });
             });
             it('should delete first character of unbreakable, ignoring selected paragraph break', async () => {
@@ -3833,6 +3867,22 @@ X[]
                     contentAfter: '<p>a[b<span>]\u200B</span>cd</p>',
                     // Final state: '<p>a[]b<span>\u200B</span>cd</p>'
                 });
+            });
+        });
+        it('should apply a color to a slice of text containing a span', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<p>a[b<span>c</span>d]e</p>',
+                stepFunction: editor => editor.execCommand('applyColor', 'rgb(255, 0, 0)', 'color'),
+                contentAfter: '<p>a<font style="color: rgb(255, 0, 0);">[b<span>c</span>d]</font>e</p>',
+            });
+        });
+        it('should distribute color to texts and to button separately', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<p>a[b<a class="btn">c</a>d]e</p>',
+                stepFunction: editor => editor.execCommand('applyColor', 'rgb(255, 0, 0)', 'color'),
+                contentAfter: '<p>a<font style="color: rgb(255, 0, 0);">[b</font>' +
+                    '<a class="btn"><font style="color: rgb(255, 0, 0);">c</font></a>' +
+                    '<font style="color: rgb(255, 0, 0);">d]</font>e</p>',
             });
         });
     });

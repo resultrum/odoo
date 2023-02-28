@@ -197,7 +197,7 @@ class PosOrder(models.Model):
             'quantity': order_line.qty if self.amount_total >= 0 else -order_line.qty,
             'discount': order_line.discount,
             'price_unit': order_line.price_unit,
-            'name': order_line.full_product_name or order_line.product_id.display_name,
+            'name': order_line.product_id.display_name or order_line.full_product_name,
             'tax_ids': [(6, 0, order_line.tax_ids_after_fiscal_position.ids)],
             'product_uom_id': order_line.product_uom_id.id,
         }
@@ -206,7 +206,7 @@ class PosOrder(models.Model):
         invoice_lines = []
         for line in self.lines:
             invoice_lines.append((0, None, self._prepare_invoice_line(line)))
-            if line.order_id.pricelist_id.discount_policy == 'without_discount' and line.price_unit != line.product_id.lst_price:
+            if line.order_id.pricelist_id.discount_policy == 'without_discount' and float_compare(line.price_unit, line.product_id.lst_price, precision_rounding=self.currency_id.rounding) < 0:
                 invoice_lines.append((0, None, {
                     'name': _('Price discount from %s -> %s',
                               float_repr(line.product_id.lst_price, self.currency_id.decimal_places),

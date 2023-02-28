@@ -4,6 +4,7 @@ from odoo import _, models
 from odoo.tools import float_repr
 from odoo.tests.common import Form
 from odoo.exceptions import UserError
+from odoo.tools.float_utils import float_round
 
 from zeep import Client
 
@@ -40,6 +41,7 @@ UOM_TO_UNECE_CODE = {
 # -------------------------------------------------------------------------
 COUNTRY_EAS = {
     'HU': 9910,
+    'AT': 9915,
     'ES': 9920,
     'AD': 9922,
     'AL': 9923,
@@ -51,7 +53,7 @@ COUNTRY_EAS = {
     'CZ': 9929,
     'DE': 9930,
     'EE': 9931,
-    'UK': 9932,
+    'GB': 9932,
     'GR': 9933,
     'HR': 9934,
     'IE': 9935,
@@ -78,6 +80,7 @@ COUNTRY_EAS = {
     'NO': '0192',
     'SG': '0195',
     'AU': '0151',
+    'FI': '0213',
 }
 
 
@@ -92,7 +95,7 @@ class AccountEdiCommon(models.AbstractModel):
     def format_float(self, amount, precision_digits):
         if amount is None:
             return None
-        return float_repr(amount, precision_digits)
+        return float_repr(float_round(amount, precision_digits), precision_digits)
 
     def _get_uom_unece_code(self, line):
         """

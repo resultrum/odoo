@@ -357,14 +357,30 @@ var EditPageMenu = websiteNavbarData.WebsiteNavbarActionWidget.extend({
         // grep: COMPANY_TEAM_CONTENTEDITABLE
         const $extraEditableZones = $editableSavableZones.find('.s_company_team .o_not_editable img');
 
-        return $editableSavableZones.add($extraEditableZones).toArray();
+        return $editableSavableZones.add($extraEditableZones).toArray().concat(
+            // To make sure the selection remains bounded to the active tab,
+            // each tab is made non editable while keeping its nested
+            // oe_structure editable. This avoids having a selection range span
+            // over all further inactive tabs when using Chrome.
+            ...document.querySelectorAll('#wrapwrap .s_tabs > div > .s_tabs_main > .s_tabs_content > .tab-pane > .oe_structure')
+        );
     },
 
     _getReadOnlyAreas () {
-        return [];
+        // To make sure the selection remains bounded to the active tab,
+        // each tab is made non editable while keeping its nested
+        // oe_structure editable. This avoids having a selection range span
+        // over all further inactive tabs when using Chrome.
+        return document.querySelectorAll('#wrapwrap .s_tabs > div > .s_tabs_main > .s_tabs_content > .tab-pane');
     },
     _getUnremovableElements () {
-        return this._targetForEdition()[0].querySelectorAll("#top_menu a:not(.oe_unremovable)");
+        // TODO adapt in master: this was added as a fix to target some elements
+        // to be unremovable. This fix had to be reverted but to keep things
+        // stable, this still had to return the same thing: a NodeList. This
+        // code here seems the only (?) way to create a static empty NodeList.
+        // In master, this should return an array as it seems intended by the
+        // library caller anyway.
+        return document.querySelectorAll('.a:not(.a)');
     },
     /**
      * Call preventDefault of an event.
