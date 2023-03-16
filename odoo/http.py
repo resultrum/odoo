@@ -401,6 +401,7 @@ def send_file(filepath_or_fp, mimetype=None, as_attachment=False, filename=None,
         last_modified=mtime,
         etag=add_etags,
         max_age=cache_timeout,
+        response_class=Response,
         conditional=conditional
     )
 
@@ -779,10 +780,10 @@ def _generate_routing_rules(modules, nodb_only, converters=None):
                 'readonly': False,
             }
 
-            for cls in unique(reversed(type(ctrl).mro())):  # ancestors first
-                submethod = getattr(cls, method_name, None)
-                if submethod is None:
+            for cls in unique(reversed(type(ctrl).mro()[:-2])):  # ancestors first
+                if method_name not in cls.__dict__:
                     continue
+                submethod = getattr(cls, method_name)
 
                 if not hasattr(submethod, 'original_routing'):
                     _logger.warning("The endpoint %s is not decorated by @route(), decorating it myself.", f'{cls.__module__}.{cls.__name__}.{method_name}')
@@ -857,6 +858,7 @@ class FilesystemSessionStore(sessions.FilesystemSessionStore):
         session.sid = self.generate_key()
         if session.uid and env:
             session.session_token = security.compute_session_token(session, env)
+        session.should_rotate = False
         self.save(session)
 
     def vacuum(self):
@@ -1258,6 +1260,22 @@ class Request:
             self.session.is_dirty = was_dirty
         return self.session._geoip
 
+    @lazy_property
+    def best_lang(self):
+        lang = self.httprequest.accept_languages.best
+        if not lang:
+            return None
+
+        try:
+            code, territory, _, _ = babel.core.parse_locale(lang, sep='-')
+            if territory:
+                lang = f'{code}_{territory}'
+            else:
+                lang = babel.core.LOCALE_ALIASES[code]
+            return lang
+        except (ValueError, KeyError):
+            return None
+
     # =====================================================
     # Helpers
     # =====================================================
@@ -1320,19 +1338,7 @@ class Request:
         :returns: Preferred language if specified or 'en_US'
         :rtype: str
         """
-        lang = self.httprequest.accept_languages.best
-        if not lang:
-            return DEFAULT_LANG
-
-        try:
-            code, territory, _, _ = babel.core.parse_locale(lang, sep='-')
-            if territory:
-                lang = f'{code}_{territory}'
-            else:
-                lang = babel.core.LOCALE_ALIASES[code]
-            return lang
-        except (ValueError, KeyError):
-            return DEFAULT_LANG
+        return self.best_lang or DEFAULT_LANG
 
     def _geoip_resolve(self):
         if not (root.geoip_resolver and self.httprequest.remote_addr):
@@ -1579,8 +1585,6 @@ class Request:
             except Exception as exc:
                 if isinstance(exc, HTTPException) and exc.code is None:
                     raise  # bubble up to odoo.http.Application.__call__
-                if 'werkzeug' in config['dev_mode'] and self.dispatcher.routing_type != 'json':
-                    raise  # bubble up to werkzeug.debug.DebuggedApplication
                 exc.error_response = self.registry['ir.http']._handle_error(exc)
                 raise
 
@@ -1678,7 +1682,7 @@ class Dispatcher(ABC):
         root.set_csp(response)
 
     @abstractmethod
-    def handle_error(self, exc):
+    def handle_error(self, exc: Exception) -> collections.abc.Callable:
         """
         Transform the exception into a valid HTTP response. Called upon
         any exception while serving a request.
@@ -1721,7 +1725,7 @@ class HttpDispatcher(Dispatcher):
         else:
             return endpoint(**self.request.params)
 
-    def handle_error(self, exc):
+    def handle_error(self, exc: Exception) -> collections.abc.Callable:
         """
         Handle any exception that occurred while dispatching a request
         to a `type='http'` route. Also handle exceptions that occurred
@@ -1730,14 +1734,14 @@ class HttpDispatcher(Dispatcher):
         json.
 
         :param Exception exc: the exception that occurred.
-        :returns: an HTTP error response
-        :rtype: :class:`werkzeug.wrapper.Response`
+        :returns: a WSGI application
         """
         if isinstance(exc, SessionExpiredException):
             session = self.request.session
+            was_connected = session.uid is not None
             session.logout(keep_db=True)
             response = self.request.redirect_query('/web/login', {'redirect': self.request.httprequest.full_path})
-            if not session.is_explicit:
+            if not session.is_explicit and was_connected:
                 root.session_store.rotate(session, self.request.env)
                 response.set_cookie('session_id', session.sid, max_age=SESSION_LIFETIME, httponly=True)
             return response
@@ -1798,7 +1802,7 @@ class JsonRPCDispatcher(Dispatcher):
         self.request.params = dict(self.jsonrequest.get('params', {}), **args)
         ctx = self.request.params.pop('context', None)
         if ctx is not None and self.request.db:
-            self.request.update_env(context=ctx)
+            self.request.update_context(**ctx)
 
         if self.request.db:
             result = self.request.registry['ir.http']._dispatch(endpoint)
@@ -1806,16 +1810,15 @@ class JsonRPCDispatcher(Dispatcher):
             result = endpoint(**self.request.params)
         return self._response(result)
 
-    def handle_error(self, exc):
+    def handle_error(self, exc: Exception) -> collections.abc.Callable:
         """
         Handle any exception that occurred while dispatching a request to
         a `type='json'` route. Also handle exceptions that occurred when
         no route matched the request path, that no fallback page could
         be delivered and that the request ``Content-Type`` was json.
 
-        :param exc Exception: the exception that occurred.
-        :returns: an HTTP error response
-        :rtype: Response
+        :param exc: the exception that occurred.
+        :returns: a WSGI application
         """
         error = {
             'code': 200,  # this code is the JSON-RPC level code, it is
@@ -2006,12 +2009,7 @@ class Application:
             else:
                 _logger.error("Exception during request handling.", exc_info=True)
 
-            # Server is running with --dev=werkzeug, bubble the error up
-            # to werkzeug so he can fire up a debugger.
-            if 'werkzeug' in config['dev_mode'] and request.dispatcher.routing_type != 'json':
-                raise
-
-            # Ensure there is always a Response attached to the exception.
+            # Ensure there is always a WSGI handler attached to the exception.
             if not hasattr(exc, 'error_response'):
                 exc.error_response = request.dispatcher.handle_error(exc)
 

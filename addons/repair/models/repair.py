@@ -196,7 +196,7 @@ class Repair(models.Model):
         picking_warehouse = self.picking_id.location_dest_id.warehouse_id
         if location_warehouse and picking_warehouse and location_warehouse != picking_warehouse:
             return {
-                'warning': {'title': "Warning", 'message': "Note that the warehouse of the return and repair locations don't match!"},
+                'warning': {'title': _("Warning"), 'message': _("Note that the warehouses of the return and repair locations don't match!")},
             }
 
     @api.depends('product_id')
@@ -321,6 +321,8 @@ class Repair(models.Model):
         return True
 
     def action_repair_cancel(self):
+        if any(repair.state == 'done' for repair in self):
+            raise UserError(_("You cannot cancel a completed repair order."))
         invoice_to_cancel = self.filtered(lambda repair: repair.invoice_id.state == 'draft').invoice_id
         if invoice_to_cancel:
             invoice_to_cancel.button_cancel()

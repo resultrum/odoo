@@ -82,6 +82,9 @@ def transfer_node_to_modifiers(node, modifiers):
     attrs = node.attrib.pop('attrs', None)
     if attrs:
         modifiers.update(ast.literal_eval(attrs.strip()))
+        for a in ('invisible', 'readonly', 'required'):
+            if a in modifiers and isinstance(modifiers[a], int):
+                modifiers[a] = bool(modifiers[a])
 
     states = node.attrib.pop('states', None)
     if states:
@@ -1044,10 +1047,11 @@ actual arch.
         """
 
         for node in tree.xpath('//*[@groups]'):
-            if not self.user_has_groups(node.attrib.pop('groups')):
+            attrib_groups = node.attrib.pop('groups')
+            if attrib_groups and not self.user_has_groups(attrib_groups):
                 node.getparent().remove(node)
-            elif node.tag == 't' and not node.attrib:
-                # Move content of <t> blocks created in `_postprocess_tag_field` to the parent
+            elif node.tag == 't' and (not node.attrib or node.get('postprocess_added')):
+                # Move content of <t groups=""> blocks
                 # and remove the <t> node.
                 # This is to keep the structure
                 # <group>
@@ -1155,14 +1159,14 @@ actual arch.
 
             # compute default
             tag = node.tag
-            parent = node.getparent()
+            had_parent = node.getparent() is not None
             node_info = dict(root_info, modifiers={}, editable=editable and self._editable_node(node, name_manager))
 
             # tag-specific postprocessing
             postprocessor = getattr(self, f"_postprocess_tag_{tag}", None)
             if postprocessor is not None:
                 postprocessor(node, name_manager, node_info)
-                if node.getparent() is not parent:
+                if had_parent and node.getparent() is None:
                     # the node has been removed, stop processing here
                     continue
 
@@ -1259,7 +1263,7 @@ actual arch.
                         # set on the field in the Python model
                         # e.g. <t groups="base.group_system"><field name="foo" groups="base.group_no_one"/></t>
                         # The <t> node will be removed later, in _postprocess_access_rights.
-                        node_t = E.t(groups=field.groups)
+                        node_t = E.t(groups=field.groups, postprocess_added='1')
                         node.getparent().replace(node, node_t)
                         node_t.append(node)
                     else:
@@ -1315,7 +1319,7 @@ actual arch.
             if field and field.groups:
                 if node.get('groups'):
                     # See the comment for this in `_postprocess_tag_field`
-                    node_t = E.t(groups=field.groups)
+                    node_t = E.t(groups=field.groups, postprocess_added="1")
                     node.getparent().replace(node, node_t)
                     node_t.append(node)
                 else:
@@ -2844,7 +2848,7 @@ class NameManager:
         field_info = self.model.fields_get(attributes=['invisible', 'states', 'readonly', 'required'])
         has_access = functools.partial(self.model.check_access_rights, raise_exception=False)
         if not (has_access('write') or has_access('create')):
-            for info in field_info.vals():
+            for info in field_info.values():
                 info['readonly'] = True
                 info['states'] = {}
         return field_info

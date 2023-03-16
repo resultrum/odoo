@@ -218,6 +218,7 @@ class MrpWorkorder(models.Model):
             color_icon = infos and infos[-1]['color'] or False
             wo.show_json_popover = bool(color_icon)
             wo.json_popover = json.dumps({
+                'popoverTemplate': 'mrp.workorderPopover',
                 'infos': infos,
                 'color': color_icon,
                 'icon': 'fa-exclamation-triangle' if color_icon in ['text-warning', 'text-danger'] else 'fa-info-circle',
@@ -504,6 +505,8 @@ class MrpWorkorder(models.Model):
         # Plan workorder after its predecessors
         start_date = max(self.production_id.date_planned_start, datetime.now())
         for workorder in self.blocked_by_workorder_ids:
+            if workorder.state in ['done', 'cancel']:
+                continue
             workorder._plan_workorder(replan)
             start_date = max(start_date, workorder.date_planned_finished)
         # Plan only suitable workorders
@@ -551,6 +554,12 @@ class MrpWorkorder(models.Model):
         })
         vals['leave_id'] = leave.id
         self.write(vals)
+
+    def _cal_cost(self, times=None):
+        self.ensure_one()
+        times = times or self.time_ids
+        duration = sum(times.mapped('duration'))
+        return (duration / 60.0) * self.workcenter_id.costs_hour
 
     @api.model
     def gantt_unavailability(self, start_date, end_date, scale, group_bys=None, rows=None):
@@ -600,11 +609,14 @@ class MrpWorkorder(models.Model):
 
         if self.product_tracking == 'serial':
             self.qty_producing = 1.0
+        elif self.qty_producing == 0:
+            self.qty_producing = self.qty_remaining
 
         if self._should_start_timer():
             self.env['mrp.workcenter.productivity'].create(
                 self._prepare_timeline_vals(self.duration, datetime.now())
             )
+
         if self.production_id.state != 'progress':
             self.production_id.write({
                 'date_start': datetime.now(),
@@ -628,10 +640,9 @@ class MrpWorkorder(models.Model):
             vals['leave_id'] = leave.id
             return self.write(vals)
         else:
-            if self.date_planned_start > start_date:
+            if not self.date_planned_start or self.date_planned_start > start_date:
                 vals['date_planned_start'] = start_date
-                if self.duration_expected:
-                    vals['date_planned_finished'] = self._calculate_date_planned_finished(start_date)
+                vals['date_planned_finished'] = self._calculate_date_planned_finished(start_date)
             if self.date_planned_finished and self.date_planned_finished < start_date:
                 vals['date_planned_finished'] = start_date
             return self.with_context(bypass_duration_calculation=True).write(vals)
@@ -653,7 +664,7 @@ class MrpWorkorder(models.Model):
                 vals['date_start'] = end_date
             if not workorder.date_planned_start or end_date < workorder.date_planned_start:
                 vals['date_planned_start'] = end_date
-            workorder.write(vals)
+            workorder.with_context(bypass_duration_calculation=True).write(vals)
         return True
 
     def end_previous(self, doall=False):
@@ -734,10 +745,13 @@ class MrpWorkorder(models.Model):
         action['res_id'] = self.id
         return action
 
-    @api.depends('qty_production', 'qty_reported_from_previous_wo', 'qty_produced')
+    @api.depends('qty_production', 'qty_reported_from_previous_wo', 'qty_produced', 'production_id.product_uom_id')
     def _compute_qty_remaining(self):
         for wo in self:
-            wo.qty_remaining = max(float_round(wo.qty_production - wo.qty_reported_from_previous_wo - wo.qty_produced, precision_rounding=wo.production_id.product_uom_id.rounding), 0)
+            if wo.production_id.product_uom_id:
+                wo.qty_remaining = max(float_round(wo.qty_production - wo.qty_reported_from_previous_wo - wo.qty_produced, precision_rounding=wo.production_id.product_uom_id.rounding), 0)
+            else:
+                wo.qty_remaining = 0
 
     def _get_duration_expected(self, alternative_workcenter=False, ratio=1):
         self.ensure_one()

@@ -70,6 +70,7 @@ export class AutoComplete extends Component {
 
     loadSources(useInput) {
         this.sources = [];
+        this.state.activeSourceOption = null;
         const proms = [];
         for (const pSource of this.props.sources) {
             const source = this.makeSource(pSource);
@@ -142,6 +143,8 @@ export class AutoComplete extends Component {
             ...params,
             input: this.inputRef.el,
         });
+        const customEvent = new CustomEvent("AutoComplete:OPTION_SELECTED", { bubbles: true });
+        this.root.el.dispatchEvent(customEvent);
         this.close();
     }
 
@@ -185,7 +188,9 @@ export class AutoComplete extends Component {
 
             if (source) {
                 const optionIndex = step < 0 ? source.options.length - 1 : 0;
-                this.state.activeSourceOption = [sourceIndex, optionIndex];
+                if (optionIndex < source.options.length) {
+                    this.state.activeSourceOption = [sourceIndex, optionIndex];
+                }
             }
         }
     }

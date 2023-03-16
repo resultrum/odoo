@@ -99,7 +99,7 @@ class PickingType(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if 'sequence_id' not in vals or not vals['sequence_id']:
+            if not vals.get('sequence_id') and vals.get('sequence_code'):
                 if vals.get('warehouse_id'):
                     wh = self.env['stock.warehouse'].browse(vals['warehouse_id'])
                     vals['sequence_id'] = self.env['ir.sequence'].sudo().create({
@@ -521,6 +521,7 @@ class Picking(models.Model):
         picking_no_alert.json_popover = False
         for picking in (self - picking_no_alert):
             picking.json_popover = json.dumps({
+                'popoverTemplate': 'stock.PopoverStockRescheduling',
                 'delay_alert_date': format_datetime(self.env, picking.delay_alert_date, dt_format=False),
                 'late_elements': [{
                     'id': late_move.id,
@@ -749,6 +750,12 @@ class Picking(models.Model):
             "location_id": self.location_id,
             "location_dest_id": self.location_dest_id
         })
+        if any(line.reserved_qty or line.qty_done for line in self.move_ids.move_line_ids):
+            return {'warning': {
+                    'title': 'Locations to update',
+                    'message': _("You might want to update the locations of this transfer's operations")
+                }
+            }
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -820,6 +827,14 @@ class Picking(models.Model):
         self.write({'printed': True})
         return self.env.ref('stock.action_report_picking').report_action(self)
 
+    def should_print_delivery_address(self):
+        self.ensure_one()
+        return self.move_ids and self.move_ids[0].partner_id and self._is_to_external_location()
+
+    def _is_to_external_location(self):
+        self.ensure_one()
+        return self.picking_type_code == 'outgoing'
+
     def action_confirm(self):
         self._check_company()
         self.mapped('package_level_ids').filtered(lambda pl: pl.state == 'draft' and not pl.move_ids)._generate_moves()
@@ -854,6 +869,7 @@ class Picking(models.Model):
     def action_cancel(self):
         self.move_ids._action_cancel()
         self.write({'is_locked': True})
+        self.filtered(lambda x: not x.move_ids).state = 'cancel'
         return True
 
     def _action_done(self):
@@ -1075,7 +1091,7 @@ class Picking(models.Model):
             lines = self.move_ids.filtered(lambda m: m.product_id.type == 'product' and m.state != 'cancel' and m.quantity_done and not m.move_dest_ids)
             if lines:
                 # don't show reception report if all already assigned/nothing to assign
-                wh_location_ids = self.env['stock.location']._search([('id', 'child_of', self.picking_type_id.warehouse_id.view_location_id.id), ('usage', '!=', 'supplier')])
+                wh_location_ids = self.env['stock.location']._search([('id', 'child_of', self.picking_type_id.warehouse_id.view_location_id.ids), ('usage', '!=', 'supplier')])
                 if self.env['stock.move'].search([
                         ('state', 'in', ['confirmed', 'partially_available', 'waiting', 'assigned']),
                         ('product_qty', '>', 0),

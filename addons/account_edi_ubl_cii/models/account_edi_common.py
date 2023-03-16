@@ -3,6 +3,7 @@
 from odoo import _, models, Command
 from odoo.tools import float_repr
 from odoo.exceptions import UserError
+from odoo.tools.float_utils import float_round
 
 from zeep import Client
 
@@ -39,6 +40,7 @@ UOM_TO_UNECE_CODE = {
 # -------------------------------------------------------------------------
 COUNTRY_EAS = {
     'HU': 9910,
+    'AT': 9915,
     'ES': 9920,
     'AD': 9922,
     'AL': 9923,
@@ -50,7 +52,7 @@ COUNTRY_EAS = {
     'CZ': 9929,
     'DE': 9930,
     'EE': 9931,
-    'UK': 9932,
+    'GB': 9932,
     'GR': 9933,
     'HR': 9934,
     'IE': 9935,
@@ -77,6 +79,8 @@ COUNTRY_EAS = {
     'NO': '0192',
     'SG': '0195',
     'AU': '0151',
+    'NZ': '0088',
+    'FI': '0213',
 }
 
 
@@ -91,7 +95,7 @@ class AccountEdiCommon(models.AbstractModel):
     def format_float(self, amount, precision_digits):
         if amount is None:
             return None
-        return float_repr(amount, precision_digits)
+        return float_repr(float_round(amount, precision_digits), precision_digits)
 
     def _get_uom_unece_code(self, line):
         """
@@ -194,6 +198,7 @@ class AccountEdiCommon(models.AbstractModel):
                 'id': tax_unece_codes.get('tax_category_code'),
                 'percent': tax.amount if tax.amount_type == 'percent' else False,
                 'name': tax_unece_codes.get('tax_exemption_reason'),
+                'tax_scheme_id': 'VAT',
                 **tax_unece_codes,
             })
         return res
@@ -264,6 +269,12 @@ class AccountEdiCommon(models.AbstractModel):
             default_journal_id=journal.id,
         )._get_edi_creation() as invoice:
             logs = self._import_fill_invoice_form(journal, tree, invoice, qty_factor)
+
+        # For UBL, we should override the computed tax amount if it is less than 0.05 different of the one in the xml.
+        # In order to support use case where the tax total is adapted for rounding purpose.
+        # This has to be done after the first import in order to let Odoo compute the taxes before overriding if needed.
+        with invoice.with_context(account_predictive_bills_disable_prediction=True)._get_edi_creation() as invoice:
+            self._correct_invoice_tax_amount(tree, invoice)
         if invoice:
             if logs:
                 body = _(
@@ -592,6 +603,9 @@ class AccountEdiCommon(models.AbstractModel):
         invoice_line_form.discount = inv_line_vals['discount']
         invoice_line_form.tax_ids = inv_line_vals['taxes']
         return logs
+
+    def _correct_invoice_tax_amount(self, tree, invoice):
+        pass  # To be implemented by the format if needed
 
     # -------------------------------------------------------------------------
     # Check xml using the free API from Ph. Helger, don't abuse it !
