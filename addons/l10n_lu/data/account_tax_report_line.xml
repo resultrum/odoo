@@ -667,7 +667,7 @@
       <field name="name">IV.C. Exceeding amount (105)</field>
       <field name="sequence">3</field>
       <field name="parent_id" ref="account_tax_report_line_4_tax_tobe_paid_or_reclaimed"/>
-      <field name="formula">LUTAX_046 + LUTAX_056 + LUTAX_407 + LUTAX_410 + LUTAX_768 + LUTAX_227 - LUTAX_458+LUTAX_459+LUTAX_460+LUTAX_090+LUTAX_461+LUTAX_092+LUTAX_228+LUTAX_094+LUTAX_095</field>
+      <field name="formula">LUTAX_046 + LUTAX_056 + LUTAX_407 + LUTAX_410 + LUTAX_768 + LUTAX_227 - LUTAX_458-LUTAX_459-LUTAX_460-LUTAX_090-LUTAX_461-LUTAX_092-LUTAX_228-LUTAX_094-LUTAX_095</field>
       <field name="country_id" ref="base.lu"/>
     </record>
 
