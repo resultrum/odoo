@@ -43,5 +43,6 @@ class MailTemplate(models.Model):
 
         return res
 
-    def get_generate_edi_attachment_allowed(self,record, doc):
+    @api.model
+    def get_generate_edi_attachment_allowed(self, record, doc):
         return doc.edi_format_id._is_embedding_to_invoice_pdf_needed()
