@@ -2085,7 +2085,10 @@ class Orderline extends PosModel {
         var parsed_price = !isNaN(price) ?
             price :
             isNaN(parseFloat(price)) ? 0 : field_utils.parse.float('' + price)
-        this.price = round_di(parsed_price || 0, this.pos.dp['Product Price']);
+        this.price = this.set_threshold_price(parsed_price)
+    }
+    set_threshold_price(parsed_price){
+        return round_di(parsed_price || 0, this.pos.dp['Product Price']);
     }
     get_unit_price(){
         var digits = this.pos.dp['Product Price'];
