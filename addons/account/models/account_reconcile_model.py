@@ -587,10 +587,8 @@ class AccountReconcileModel(models.Model):
             treatment_slices.append(st_lines_with_partner[slice_start:slice_end])
             slice_start = slice_end
 
-        treatment_map = {
-            'invoice_matching': lambda rec_model, slice: rec_model._get_invoice_matching_query(slice, excluded_ids),
-            'writeoff_suggestion': lambda rec_model, slice: rec_model._get_writeoff_suggestion_query(slice, excluded_ids),
-        }
+        treatment_map = self._get_treatment_map(excluded_ids)
+
         rslt = defaultdict(lambda: [])
         for treatment_slice in treatment_slices:
             query_generator = treatment_map[self.rule_type]
@@ -601,6 +599,13 @@ class AccountReconcileModel(models.Model):
                 rslt[candidate_dict['id']].append(candidate_dict)
 
         return rslt
+
+    def _get_treatment_map(self, excluded_ids):
+        treatment_map = {
+            'invoice_matching': lambda rec_model, slice: rec_model._get_invoice_matching_query(slice, excluded_ids),
+            'writeoff_suggestion': lambda rec_model, slice: rec_model._get_writeoff_suggestion_query(slice, excluded_ids),
+        }
+        return treatment_map
 
     def _get_invoice_matching_query(self, st_lines_with_partner, excluded_ids):
         ''' Returns the query applying the current invoice_matching reconciliation
