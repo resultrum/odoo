@@ -1,0 +1,25 @@
+#!/bin/bash
+
+
+search_directory="."
+
+broken_symlinks=$(find "$search_directory" -type l ! -exec test -e {} \; -print)
+
+# Loop through the list of broken symlinks and remove them
+for symlink in $broken_symlinks; do
+    echo "Removing broken symlink: $symlink"
+    rm "$symlink"
+done
+
+echo "Done removing broken symlinks."
+
+
+
+for filename in ../../addons/*; do
+    if [[ -d "$filename" ]]; then
+       if [[ "$filename" != "../../setup" ]]; then
+           echo "$filename"
+           ln -s "$filename"
+       fi 
+    fi
+done
