@@ -131,6 +131,30 @@ class TestProjectSharing(TestProjectSharingCommon):
                 form.project_id = self.project_cows
                 task = form.save()
 
+        Task = Task.with_user(self.user_portal)
+
+        # Create/Update a forbidden task through child_ids using context defaults
+        with self.assertRaisesRegex(AccessError, "You cannot write on description"):
+            Task.with_context(default_child_ids=[Command.create({'name': 'Foo', 'description': 'Foo'})]).create({'name': 'foo'})
+        with self.assertRaisesRegex(AccessError, "not allowed to modify 'Task'"):
+            Task.with_context(default_child_ids=[Command.update(self.task_no_collabo.id, {'name': 'Foo'})]).create({'name': 'foo'})
+        with self.assertRaisesRegex(AccessError, "not allowed to delete 'Task'"):
+            Task.with_context(default_child_ids=[Command.delete(self.task_no_collabo.id)]).create({'name': 'foo'})
+        with self.assertRaisesRegex(AccessError, "not allowed to modify 'Task'"):
+            Task.with_context(default_child_ids=[Command.unlink(self.task_no_collabo.id)]).create({'name': 'foo'})
+        with self.assertRaisesRegex(AccessError, "not allowed to modify 'Task'"):
+            Task.with_context(default_child_ids=[Command.link(self.task_no_collabo.id)]).create({'name': 'foo'})
+        with self.assertRaisesRegex(AccessError, "not allowed to modify 'Task'"):
+            Task.with_context(default_child_ids=[Command.set([self.task_no_collabo.id])]).create({'name': 'foo'})
+
+        # Create/update a tag through tag_ids using context defaults
+        with self.assertRaisesRegex(AccessError, "not allowed to create 'Project Tags'"):
+            Task.with_context(default_tag_ids=[Command.create({'name': 'Bar'})]).create({'name': 'foo'})
+        with self.assertRaisesRegex(AccessError, "not allowed to modify 'Project Tags'"):
+            Task.with_context(default_tag_ids=[Command.update(self.task_tag.id, {'name': 'Bar'})]).create({'name': 'foo'})
+        with self.assertRaisesRegex(AccessError, "not allowed to delete 'Project Tags'"):
+            Task.with_context(default_tag_ids=[Command.delete(self.task_tag.id)]).create({'name': 'foo'})
+
     def test_edit_task_in_project_sharing(self):
         """ Test when portal user creates a task in project sharing views.
 
