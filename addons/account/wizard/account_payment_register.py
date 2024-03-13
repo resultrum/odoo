@@ -600,9 +600,6 @@ class AccountPaymentRegister(models.TransientModel):
                             (1, debit_lines[0].id, {'debit': debit_lines[0].debit + delta_balance}),
                             (1, credit_lines[0].id, {'credit': credit_lines[0].credit + delta_balance}),
                         ]})
-
-        if self._context.get('is_async_payment', False):
-            self.with_delay()._post_payments_async(to_process, edit_mode=edit_mode)
         return payments
 
     def _post_payments(self, to_process, edit_mode=False):
@@ -619,8 +616,6 @@ class AccountPaymentRegister(models.TransientModel):
         for vals in to_process:
             payments |= vals['payment']
         payments.action_post()
-        if self._context.get('is_async_payment', False):
-            self.with_delay()._reconcile_payments(to_process, edit_mode=edit_mode)
 
     def _reconcile_payments(self, to_process, edit_mode=False):
         """ Reconcile the payments.
@@ -683,17 +678,18 @@ class AccountPaymentRegister(models.TransientModel):
                     'batch': batch_result,
                 })
         if is_async_payment:
-            payments = self.with_delay()._init_payments_async(to_process, edit_mode=edit_mode)
+            payments = self.to_chunk_payments_async_execution(
+                to_process,
+                edit_mode=edit_mode
+            )
         else:
             payments = self._init_payments(to_process, edit_mode=edit_mode)
             self._post_payments(to_process, edit_mode=edit_mode)
             self._reconcile_payments(to_process, edit_mode=edit_mode)
         return payments
 
-    def _post_payments_async(self, to_process, edit_mode=False):
-        raise NotImplementedError("This method should be implemented in your project.")
-
-    def _init_payments_async(self, to_process, edit_mode=False):
+    @api.model
+    def to_chunk_payments_async_execution(self, to_process, edit_mode=False):
         raise NotImplementedError("This method should be implemented in your project.")
 
     def action_create_payments(self):
