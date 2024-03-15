@@ -528,9 +528,7 @@ class AccountMove(models.Model):
             if new_term_account and line.account_id.user_type_id.type in ('receivable', 'payable'):
                 line.account_id = new_term_account
 
-        self._compute_bank_partner_id()
-        bank_ids = self.bank_partner_id.bank_ids.filtered(lambda bank: bank.company_id is False or bank.company_id == self.company_id)
-        self.partner_bank_id = bank_ids and bank_ids[0]
+        self.set_partner_bank()
 
         # Find the new fiscal position.
         delivery_partner_id = self._get_invoice_delivery_partner_id()
@@ -539,6 +537,17 @@ class AccountMove(models.Model):
         self._recompute_dynamic_lines()
         if warning:
             return {'warning': warning}
+
+    def set_partner_bank(self):
+        self._compute_bank_partner_id()
+        banks = self.get_partner_bank()
+        self.partner_bank_id = banks and banks[0]
+
+    def get_partner_bank(self):
+        banks = self.bank_partner_id.bank_ids.filtered(lambda bank:
+            bank.company_id is False or bank.company_id == self.company_id
+        )
+        return banks
 
     @api.onchange('date', 'currency_id')
     def _onchange_currency(self):
