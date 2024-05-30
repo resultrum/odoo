@@ -555,7 +555,7 @@ class AccountMove(models.Model):
 
     @api.onchange('payment_reference')
     def _onchange_payment_reference(self):
-        for line in self.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable')):
+        for line in self._get_lines_to_recompute_payment_reference():
             line.name = self.payment_reference or ''
 
     @api.onchange('invoice_vendor_bill_id')
@@ -998,11 +998,95 @@ class AccountMove(models.Model):
 
         _apply_cash_rounding(self, diff_balance, diff_amount_currency, existing_cash_rounding_line)
 
+    def _compute_payment_terms(self, date, total_balance,total_amount_currency):
+        ''' Compute the payment terms.
+        :param self:                    The current account.move record.
+        :param date:                    The date computed by '_get_payment_terms_computation_date'.
+        :param total_balance:           The invoice's total in company's currency.
+        :param total_amount_currency:   The invoice's total in invoice's currency.
+        :return:                        A list <to_pay_company_currency, to_pay_invoice_currency, due_date>.
+        '''
+        if self.invoice_payment_term_id:
+            to_compute = self.invoice_payment_term_id.compute(total_balance,date_ref=date,currency=self.company_id.currency_id)
+            if self.currency_id == self.company_id.currency_id:
+                # Single-currency.
+                return [(b[0], b[1], b[1]) for b in to_compute]
+            else:
+                # Multi-currencies.
+                to_compute_currency = self.invoice_payment_term_id.compute(total_amount_currency, date_ref=date,currency=self.currency_id)
+                return [(b[0], b[1], ac[1]) for b, ac in zip(to_compute, to_compute_currency)]
+        else:
+            return [(fields.Date.to_string(date), total_balance, total_amount_currency)]
+
+    def _compute_diff_payment_terms_lines(self, existing_terms_lines, account, to_compute):
+        ''' Process the result of the '_compute_payment_terms' method and creates/updates corresponding invoice lines.
+        :param self:                    The current account.move record.
+        :param existing_terms_lines:    The current payment terms lines.
+        :param account:                 The account.account record returned by '_get_payment_terms_account'.
+        :param to_compute:              The list returned by '_compute_payment_terms'.
+        '''
+        # As we try to update existing lines, sort them by due date.
+        today = fields.Date.context_today(self)
+        in_draft_mode = self != self._origin
+        existing_terms_lines = existing_terms_lines.sorted(lambda line: line.date_maturity or today)
+        existing_terms_lines_index = 0
+
+        # Recompute amls: update existing line or create new one for each payment term.
+        new_terms_lines = self.env['account.move.line']
+        for args in to_compute:
+            currency = self.journal_id.company_id.currency_id
+            if currency and currency.is_zero(args[1]) and len(to_compute) > 1:
+                continue
+            candidate = self._get_candidate_vals(
+                existing_terms_lines_index, existing_terms_lines, account, args
+            )
+            if existing_terms_lines_index < len(existing_terms_lines):
+                existing_terms_lines_index += 1
+
+            new_terms_lines += candidate
+            if in_draft_mode:
+                candidate.update(candidate._get_fields_onchange_balance(force_computation=True))
+        return new_terms_lines
+
+    def _get_candidate_vals(
+            self, existing_terms_lines_index, existing_terms_lines, account, args
+    ):
+        in_draft_mode = self != self._origin
+        date_maturity = args[0]
+        balance = args[1]
+        amount_currency = args[2]
+        if existing_terms_lines_index < len(existing_terms_lines):
+            # Update existing line.
+            candidate = existing_terms_lines[existing_terms_lines_index]
+            candidate.update({
+                'date_maturity': date_maturity,
+                'amount_currency': -amount_currency,
+                'debit': balance < 0.0 and -balance or 0.0,
+                'credit': balance > 0.0 and balance or 0.0,
+            })
+        else:
+            # Create new line.
+            create_method = in_draft_mode and self.env['account.move.line'].new or self.env[
+                'account.move.line'].create
+            candidate = create_method({
+                'name': self.payment_reference or '',
+                'debit': balance < 0.0 and -balance or 0.0,
+                'credit': balance > 0.0 and balance or 0.0,
+                'quantity': 1.0,
+                'amount_currency': -amount_currency,
+                'date_maturity': date_maturity,
+                'move_id': self.id,
+                'currency_id': self.currency_id.id,
+                'account_id': account.id,
+                'partner_id': self.commercial_partner_id.id,
+                'exclude_from_invoice_tab': True,
+            })
+        return candidate
+
     def _recompute_payment_terms_lines(self):
         ''' Compute the dynamic payment term lines of the journal entry.'''
         self.ensure_one()
         self = self.with_company(self.company_id)
-        in_draft_mode = self != self._origin
         today = fields.Date.context_today(self)
         self = self.with_company(self.journal_id.company_id)
 
@@ -1039,75 +1123,6 @@ class AccountMove(models.Model):
                 elif self.is_purchase_document(include_receipts=True):
                     return account_map['payable']
 
-        def _compute_payment_terms(self, date, total_balance, total_amount_currency):
-            ''' Compute the payment terms.
-            :param self:                    The current account.move record.
-            :param date:                    The date computed by '_get_payment_terms_computation_date'.
-            :param total_balance:           The invoice's total in company's currency.
-            :param total_amount_currency:   The invoice's total in invoice's currency.
-            :return:                        A list <to_pay_company_currency, to_pay_invoice_currency, due_date>.
-            '''
-            if self.invoice_payment_term_id:
-                to_compute = self.invoice_payment_term_id.compute(total_balance, date_ref=date, currency=self.company_id.currency_id)
-                if self.currency_id == self.company_id.currency_id:
-                    # Single-currency.
-                    return [(b[0], b[1], b[1]) for b in to_compute]
-                else:
-                    # Multi-currencies.
-                    to_compute_currency = self.invoice_payment_term_id.compute(total_amount_currency, date_ref=date, currency=self.currency_id)
-                    return [(b[0], b[1], ac[1]) for b, ac in zip(to_compute, to_compute_currency)]
-            else:
-                return [(fields.Date.to_string(date), total_balance, total_amount_currency)]
-
-        def _compute_diff_payment_terms_lines(self, existing_terms_lines, account, to_compute):
-            ''' Process the result of the '_compute_payment_terms' method and creates/updates corresponding invoice lines.
-            :param self:                    The current account.move record.
-            :param existing_terms_lines:    The current payment terms lines.
-            :param account:                 The account.account record returned by '_get_payment_terms_account'.
-            :param to_compute:              The list returned by '_compute_payment_terms'.
-            '''
-            # As we try to update existing lines, sort them by due date.
-            existing_terms_lines = existing_terms_lines.sorted(lambda line: line.date_maturity or today)
-            existing_terms_lines_index = 0
-
-            # Recompute amls: update existing line or create new one for each payment term.
-            new_terms_lines = self.env['account.move.line']
-            for date_maturity, balance, amount_currency in to_compute:
-                currency = self.journal_id.company_id.currency_id
-                if currency and currency.is_zero(balance) and len(to_compute) > 1:
-                    continue
-
-                if existing_terms_lines_index < len(existing_terms_lines):
-                    # Update existing line.
-                    candidate = existing_terms_lines[existing_terms_lines_index]
-                    existing_terms_lines_index += 1
-                    candidate.update({
-                        'date_maturity': date_maturity,
-                        'amount_currency': -amount_currency,
-                        'debit': balance < 0.0 and -balance or 0.0,
-                        'credit': balance > 0.0 and balance or 0.0,
-                    })
-                else:
-                    # Create new line.
-                    create_method = in_draft_mode and self.env['account.move.line'].new or self.env['account.move.line'].create
-                    candidate = create_method({
-                        'name': self.payment_reference or '',
-                        'debit': balance < 0.0 and -balance or 0.0,
-                        'credit': balance > 0.0 and balance or 0.0,
-                        'quantity': 1.0,
-                        'amount_currency': -amount_currency,
-                        'date_maturity': date_maturity,
-                        'move_id': self.id,
-                        'currency_id': self.currency_id.id,
-                        'account_id': account.id,
-                        'partner_id': self.commercial_partner_id.id,
-                        'exclude_from_invoice_tab': True,
-                    })
-                new_terms_lines += candidate
-                if in_draft_mode:
-                    candidate.update(candidate._get_fields_onchange_balance(force_computation=True))
-            return new_terms_lines
-
         existing_terms_lines = self.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
         others_lines = self.line_ids.filtered(lambda line: line.account_id.user_type_id.type not in ('receivable', 'payable'))
         company_currency_id = (self.company_id or self.env.company).currency_id
@@ -1120,8 +1135,8 @@ class AccountMove(models.Model):
 
         computation_date = _get_payment_terms_computation_date(self)
         account = _get_payment_terms_account(self, existing_terms_lines)
-        to_compute = _compute_payment_terms(self, computation_date, total_balance, total_amount_currency)
-        new_terms_lines = _compute_diff_payment_terms_lines(self, existing_terms_lines, account, to_compute)
+        to_compute = self._compute_payment_terms(computation_date, total_balance, total_amount_currency)
+        new_terms_lines = self._compute_diff_payment_terms_lines(existing_terms_lines, account, to_compute)
 
         # Remove old terms lines that are no longer needed.
         self.line_ids -= existing_terms_lines - new_terms_lines
@@ -3145,7 +3160,15 @@ class AccountMove(models.Model):
 
         for move in to_post:
             move.message_subscribe([p.id for p in [move.partner_id] if p not in move.sudo().message_partner_ids])
-
+            # Compute 'ref' for 'out_invoice'.
+            if move._auto_compute_invoice_reference():
+                to_write = {
+                    'payment_reference': move._get_invoice_computed_reference(),
+                    'line_ids': []
+                }
+                for line in move._get_lines_to_recompute_payment_reference():
+                    to_write['line_ids'].append((1, line.id, {'name': to_write['payment_reference']}))
+                move.write(to_write)
 
         for move in to_post:
             if move.is_sale_document() \
@@ -3178,6 +3201,9 @@ class AccountMove(models.Model):
         # This is performed at the very end to avoid flushing fields before the whole processing.
         to_post._check_balanced()
         return to_post
+
+    def _get_lines_to_recompute_payment_reference(self):
+        return self.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
 
     def _auto_compute_invoice_reference(self):
         ''' Hook to be overridden to set custom conditions for auto-computed invoice references.
