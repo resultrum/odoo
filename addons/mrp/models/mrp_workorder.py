@@ -33,7 +33,7 @@ class MrpWorkorder(models.Model):
     product_id = fields.Many2one(related='production_id.product_id', readonly=True, store=True, check_company=True)
     product_tracking = fields.Selection(related="product_id.tracking")
     product_uom_id = fields.Many2one('uom.uom', 'Unit of Measure', required=True, readonly=True)
-    production_id = fields.Many2one('mrp.production', 'Manufacturing Order', required=True, check_company=True, readonly=True)
+    production_id = fields.Many2one('mrp.production', 'Manufacturing Order', required=True, check_company=True, readonly=True, index='btree')
     production_availability = fields.Selection(
         string='Stock Availability', readonly=True,
         related='production_id.reservation_state', store=True) # Technical: used in views and domains only
@@ -145,26 +145,27 @@ class MrpWorkorder(models.Model):
                                      domain="[('allow_workorder_dependencies', '=', True), ('id', '!=', id), ('production_id', '=', production_id)]",
                                      copy=False)
 
-    @api.depends('production_availability', 'blocked_by_workorder_ids', 'blocked_by_workorder_ids.state')
+    @api.depends('production_availability', 'blocked_by_workorder_ids.state')
     def _compute_state(self):
-        # Force the flush of the production_availability, the wo state is modify in the _compute_reservation_state
-        # It is a trick to force that the state of workorder is computed as the end of the
-        # cyclic depends with the mo.state, mo.reservation_state and wo.state
+        # Force to compute the production_availability right away.
+        # It is a trick to force that the state of workorder is computed at the end of the
+        # cyclic depends with the mo.state, mo.reservation_state and wo.state and avoid recursion error
+        self.mapped('production_availability')
         for workorder in self:
             if workorder.state == 'pending':
                 if all([wo.state in ('done', 'cancel') for wo in workorder.blocked_by_workorder_ids]):
-                    workorder.state = 'ready' if workorder.production_id.reservation_state == 'assigned' else 'waiting'
+                    workorder.state = 'ready' if workorder.production_availability == 'assigned' else 'waiting'
                     continue
             if workorder.state not in ('waiting', 'ready'):
                 continue
             if not all([wo.state in ('done', 'cancel') for wo in workorder.blocked_by_workorder_ids]):
                 workorder.state = 'pending'
                 continue
-            if workorder.production_id.reservation_state not in ('waiting', 'confirmed', 'assigned'):
+            if workorder.production_availability not in ('waiting', 'confirmed', 'assigned'):
                 continue
-            if workorder.production_id.reservation_state == 'assigned' and workorder.state == 'waiting':
+            if workorder.production_availability == 'assigned' and workorder.state == 'waiting':
                 workorder.state = 'ready'
-            elif workorder.production_id.reservation_state != 'assigned' and workorder.state == 'ready':
+            elif workorder.production_availability != 'assigned' and workorder.state == 'ready':
                 workorder.state = 'waiting'
 
     @api.depends('production_state', 'date_start', 'date_finished')
@@ -435,6 +436,9 @@ class MrpWorkorder(models.Model):
                     if workorder.state in ('progress', 'done', 'cancel'):
                         raise UserError(_('You cannot change the workcenter of a work order that is in progress or done.'))
                     workorder.leave_id.resource_id = self.env['mrp.workcenter'].browse(values['workcenter_id']).resource_id
+                    workorder.duration_expected = workorder._get_duration_expected()
+                    if workorder.date_start:
+                        workorder.date_finished = workorder._calculate_date_finished()
         if 'date_start' in values or 'date_finished' in values:
             for workorder in self:
                 date_start = fields.Datetime.to_datetime(values.get('date_start', workorder.date_start))
@@ -605,6 +609,7 @@ class MrpWorkorder(models.Model):
                 wo.production_id.write({
                     'date_start': fields.Datetime.now()
                 })
+
             if wo.state == 'progress':
                 continue
             date_start = fields.Datetime.now()

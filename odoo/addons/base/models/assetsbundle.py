@@ -52,8 +52,8 @@ class AssetNotFound(AssetError):
 
 class AssetsBundle(object):
     rx_css_import = re.compile("(@import[^;{]+;?)", re.M)
-    rx_preprocess_imports = re.compile("""(@import\s?['"]([^'"]+)['"](;?))""")
-    rx_css_split = re.compile("\/\*\! ([a-f0-9-]+) \*\/")
+    rx_preprocess_imports = re.compile(r"""(@import\s?['"]([^'"]+)['"](;?))""")
+    rx_css_split = re.compile(r"\/\*\! ([a-f0-9-]+) \*\/")
 
     TRACKED_BUNDLES = ['web.assets_web']
 
@@ -240,18 +240,14 @@ class AssetsBundle(object):
             fallback_url_pattern = self.get_asset_url(
                 unique=unique,
                 extension=extension,
+                ignore_params=True,
             )
-
             self.env.cr.execute(query, [SUPERUSER_ID, fallback_url_pattern])
             similar_attachment_ids = [r[0] for r in self.env.cr.fetchall()]
             if similar_attachment_ids:
                 similar = self.env['ir.attachment'].sudo().browse(similar_attachment_ids)
                 _logger.info('Found a similar attachment for %s, copying from %s', url_pattern, similar.url)
-                url = self.get_asset_url(
-                    unique=unique,
-                    extension=extension,
-                    ignore_params=True,
-                )
+                url = url_pattern
                 values = {
                     'name': similar.name,
                     'mimetype': similar.mimetype,
@@ -264,7 +260,7 @@ class AssetsBundle(object):
                 }
                 attachment = self.env['ir.attachment'].with_user(SUPERUSER_ID).create(values)
                 attachment_id = attachment.id
-                self.clean_attachments(extension)
+                self._clean_attachments(extension, url)
 
         return self.env['ir.attachment'].sudo().browse(attachment_id)
 
@@ -539,7 +535,7 @@ class AssetsBundle(object):
 
         css = self.preprocess_css()
         if self.css_errors:
-            error_message = '\n'.join(self.css_errors).replace('"', r'\\"').replace('\n', r'\A').replace('*', r'\*')
+            error_message = '\n'.join(self.css_errors).replace('"', r'\"').replace('\n', r'\A').replace('*', r'\*')
             previous_attachment = self.get_attachments(extension, ignore_version=True)
             previous_css = previous_attachment.raw.decode() if previous_attachment else ''
             css_error_message_header = '\n\n/* ## CSS error message ##*/'
@@ -605,7 +601,7 @@ css_error_message {
                 content_bundle_list.append(content)
                 content_line_count += len(content.split("\n"))
 
-        content_bundle = '\n'.join(content_bundle_list) + f"\n//*# sourceMappingURL={sourcemap_attachment.url} */"
+        content_bundle = '\n'.join(content_bundle_list) + f"\n/*# sourceMappingURL={sourcemap_attachment.url} */"
         css_attachment = self.save_attachment('css', content_bundle)
 
         generator._file = css_attachment.url

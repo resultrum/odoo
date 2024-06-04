@@ -292,13 +292,18 @@ class Repair(models.Model):
             picking_type = self.env['stock.picking.type'].browse(vals.get('picking_type_id', self.default_get('picking_type_id')))
             if 'picking_type_id' not in vals:
                 vals['picking_type_id'] = picking_type.id
-            if not vals.get('name', False) or vals['name'] == _('New'):
+            if not vals.get('name', False) or vals['name'] == 'New':
                 vals['name'] = picking_type.sequence_id.next_by_id()
             if not vals.get('procurement_group_id'):
                 vals['procurement_group_id'] = self.env["procurement.group"].create({'name': vals['name']}).id
         return super().create(vals_list)
 
     def write(self, vals):
+        if vals.get('picking_type_id'):
+            picking_type = self.env['stock.picking.type'].browse(vals.get('picking_type_id'))
+            for repair in self:
+                if picking_type != repair.picking_type_id:
+                    repair.name = picking_type.sequence_id.next_by_id()
         res = super().write(vals)
         if 'product_id' in vals and self.tracking == 'serial':
             self.write({'product_qty': 1.0})
@@ -436,7 +441,7 @@ class Repair(models.Model):
             if move_id:
                 repair.move_id = move_id
         all_moves = self.move_ids + product_moves
-        all_moves._action_done()
+        all_moves._action_done(cancel_backorder=True)
 
         for sale_line in self.move_ids.sale_line_id:
             price_unit = sale_line.price_unit
@@ -451,7 +456,14 @@ class Repair(models.Model):
         """
         if self.filtered(lambda repair: repair.state != 'under_repair'):
             raise UserError(_("Repair must be under repair in order to end reparation."))
-        if any(float_compare(move.quantity, move.product_uom_qty, precision_rounding=move.product_uom.rounding) < 0 for move in self.move_ids):
+        partial_moves = set()
+        picked_moves = set()
+        for move in self.move_ids:
+            if float_compare(move.quantity, move.product_uom_qty, precision_rounding=move.product_uom.rounding) < 0:
+                partial_moves.add(move.id)
+            if move.picked:
+                picked_moves.add(move.id)
+        if partial_moves or picked_moves and len(picked_moves) < len(self.move_ids):
             ctx = dict(self.env.context or {})
             ctx['default_repair_ids'] = self.ids
             return {

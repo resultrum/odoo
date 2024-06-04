@@ -13,7 +13,7 @@ import { ControlButtonPopup } from "@point_of_sale/app/screens/product_screen/co
 import { ConnectionLostError } from "@web/core/network/rpc_service";
 
 import { usePos } from "@point_of_sale/app/store/pos_hook";
-import { Component, onMounted, useExternalListener, useState } from "@odoo/owl";
+import { Component, onMounted, useState } from "@odoo/owl";
 import { ErrorBarcodePopup } from "@point_of_sale/app/barcode/error_popup/barcode_error_popup";
 
 import { Numpad } from "@point_of_sale/app/generic_components/numpad/numpad";
@@ -40,11 +40,7 @@ export class ProductScreen extends ControlButtonsMixin(Component) {
         this.orm = useService("orm");
         this.notification = useService("pos_notification");
         this.numberBuffer = useService("number_buffer");
-        this.state = useState({
-            showProductReminder: false,
-        });
         onMounted(this.onMounted);
-        useExternalListener(window, "click", this.clickEvent.bind(this));
 
         useBarcodeReader({
             product: this._barcodeProductAction,
@@ -61,7 +57,9 @@ export class ProductScreen extends ControlButtonsMixin(Component) {
         // the callbacks in `onMounted` hook.
         onMounted(() => this.numberBuffer.reset());
         this.numberBuffer.use({
-            triggerAtInput: (...args) => this.updateSelectedOrderline(...args),
+            triggerAtInput: (...args) => {
+                if (!this.pos.tempScreenIsShown) this.updateSelectedOrderline(...args);
+            },
             useWithBarcode: true,
         });
     }
@@ -74,15 +72,15 @@ export class ProductScreen extends ControlButtonsMixin(Component) {
             { value: "1" },
             { value: "2" },
             { value: "3" },
-            { value: "quantity", text: "Qty" },
+            { value: "quantity", text: _t("Qty") },
             { value: "4" },
             { value: "5" },
             { value: "6" },
-            { value: "discount", text: "% Disc", disabled: !this.pos.config.manual_discount },
+            { value: "discount", text: _t("% Disc"), disabled: !this.pos.config.manual_discount },
             { value: "7" },
             { value: "8" },
             { value: "9" },
-            { value: "price", text: "Price", disabled: !this.pos.cashierHasPriceControlRights() },
+            { value: "price", text: _t("Price"), disabled: !this.pos.cashierHasPriceControlRights() },
             { value: "-", text: "+/-" },
             { value: "0" },
             { value: this.env.services.localization.decimalPoint },
@@ -106,31 +104,6 @@ export class ProductScreen extends ControlButtonsMixin(Component) {
     selectLine(orderline) {
         this.numberBuffer.reset();
         this.currentOrder.select_orderline(orderline);
-    }
-
-    clickEvent(e) {
-        if (!this.ui.isSmall) {
-            return;
-        }
-
-        const isProductCard = (() => {
-            let element = e.target;
-            // 3 because product DOM dept is 3
-            for (let i = 0; i < 3; i++) {
-                if (element.classList.contains("product")) {
-                    return true;
-                } else {
-                    element = element.parentElement;
-                }
-            }
-            return false;
-        })();
-
-        this.state.showProductReminder =
-            this.currentOrder &&
-            this.currentOrder.get_selected_orderline() &&
-            this.selectedOrderlineQuantity &&
-            isProductCard;
     }
 
     /**
@@ -171,19 +144,6 @@ export class ProductScreen extends ControlButtonsMixin(Component) {
             }
             return;
         }
-        if (this.pos.numpadMode === "quantity" && selectedLine?.isPartOfCombo()) {
-            if (key === "Backspace") {
-                this._setValue("remove");
-            } else {
-                this.popup.add(ErrorPopup, {
-                    title: _t("Invalid action"),
-                    body: _t(
-                        "The quantity of a combo item cannot be changed. A combo can only be deleted."
-                    ),
-                });
-            }
-            return;
-        }
         if (selectedLine && this.pos.numpadMode === "quantity" && this.pos.disallowLineQuantityChange()) {
             const orderlines = order.orderlines;
             const lastId = orderlines.length !== 0 && orderlines.at(orderlines.length - 1).cid;
@@ -215,13 +175,24 @@ export class ProductScreen extends ControlButtonsMixin(Component) {
     }
     _setValue(val) {
         const { numpadMode } = this.pos;
-        const selectedLine = this.currentOrder.get_selected_orderline();
+        let selectedLine = this.currentOrder.get_selected_orderline();
         if (selectedLine) {
             if (numpadMode === "quantity") {
+                if (selectedLine.comboParent) {
+                    selectedLine = selectedLine.comboParent;
+                }
                 if (val === "remove") {
                     this.currentOrder.removeOrderline(selectedLine);
                 } else {
-                    const result = selectedLine.set_quantity(val);
+                    const result = selectedLine.set_quantity(
+                        val,
+                        Boolean(selectedLine.comboLines?.length)
+                    );
+                    if(selectedLine.comboLines){
+                        for (const line of selectedLine.comboLines) {
+                            line.set_quantity(val, true);
+                        }
+                    }
                     if (!result) {
                         this.numberBuffer.reset();
                     }
@@ -404,10 +375,6 @@ export class ProductScreen extends ControlButtonsMixin(Component) {
             this.selectedOrderlineDisplayName,
             this.selectedOrderlineTotal,
         ].join(",");
-    }
-
-    get showProductReminder() {
-        return this.currentOrder.get_selected_orderline() && this.selectedOrderlineQuantity;
     }
 
     primaryPayButton() {

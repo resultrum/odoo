@@ -195,7 +195,7 @@ class IrModule(models.Model):
         } for asset in created_assets])
 
         mod._update_from_terp(terp)
-
+        _logger.info("Successfully imported module '%s'", module)
         return True
 
     @api.model
@@ -207,8 +207,6 @@ class IrModule(models.Model):
         if not zipfile.is_zipfile(module_file):
             raise UserError(_('Only zip files are supported.'))
 
-        success = []
-        errors = dict()
         module_names = []
         with zipfile.ZipFile(module_file, "r") as z:
             for zf in z.filelist:
@@ -252,15 +250,14 @@ class IrModule(models.Model):
                     try:
                         # assert mod_name.startswith('theme_')
                         path = opj(module_dir, mod_name)
-                        if self.sudo()._import_module(mod_name, path, force=force, with_demo=with_demo):
-                            success.append(mod_name)
+                        self.sudo()._import_module(mod_name, path, force=force, with_demo=with_demo)
                     except Exception as e:
                         _logger.exception('Error while importing module')
-                        errors[mod_name] = exception_to_unicode(e)
-        r = ["Successfully imported module '%s'" % mod for mod in success]
-        for mod, error in errors.items():
-            r.append("Error while importing module '%s'.\n\n %s \n Make sure those modules are installed and try again." % (mod, error))
-        return '\n'.join(r), module_names
+                        raise UserError(_(
+                            "Error while importing module '%(module)s'.\n\n %(error_message)s \n\n",
+                            module=mod_name, error_message=exception_to_unicode(e),
+                        ))
+        return "", module_names
 
     def module_uninstall(self):
         # Delete an ir_module_module record completely if it was an imported
@@ -318,6 +315,8 @@ class IrModule(models.Model):
 
     @api.model
     def _get_modules_from_apps(self, fields, module_type, module_name, domain=None, limit=None, offset=None):
+        if 'name' not in fields:
+            fields = fields + ['name']
         payload = {
             'params': {
                 'series': major_version,
@@ -334,7 +333,7 @@ class IrModule(models.Model):
             resp.raise_for_status()
             modules_list = resp.json().get('result', [])
             for mod in modules_list:
-                module_name = mod.get('name', module_name)
+                module_name = mod['name']
                 existing_mod = self.search([('name', '=', module_name), ('state', '=', 'installed')])
                 mod['id'] = existing_mod.id if existing_mod else -1
                 if 'icon' in fields:
@@ -400,7 +399,7 @@ class IrModule(models.Model):
                 'modules_dependencies': missing_dependencies_description,
             })
             return {
-                'name': 'Install an App',
+                'name': _("Install an Industry"),
                 'view_mode': 'form',
                 'target': 'new',
                 'res_id': import_module.id,

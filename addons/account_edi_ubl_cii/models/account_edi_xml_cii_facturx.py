@@ -18,7 +18,7 @@ class AccountEdiXmlCII(models.AbstractModel):
     _description = "Factur-x/XRechnung CII 2.2.0"
 
     def _export_invoice_filename(self, invoice):
-        return "factur-x.xml"
+        return f"{invoice.name.replace('/', '_')}_factur_x.xml"
 
     def _export_invoice_ecosio_schematrons(self):
         return {
@@ -233,7 +233,7 @@ class AccountEdiXmlCII(models.AbstractModel):
         return template_values
 
     def _export_invoice(self, invoice):
-        vals = self._export_invoice_vals(invoice)
+        vals = self._export_invoice_vals(invoice.with_context(lang=invoice.partner_id.lang))
         errors = [constraint for constraint in self._export_invoice_constraints(invoice, vals).values() if constraint]
         xml_content = self.env['ir.qweb']._render('account_edi_ubl_cii.account_invoice_facturx_export_22', vals)
         return etree.tostring(cleanup_xml_node(xml_content), xml_declaration=True, encoding='UTF-8'), set(errors)
@@ -273,6 +273,18 @@ class AccountEdiXmlCII(models.AbstractModel):
                 logs.append(_("Could not retrieve currency: %s. Did you enable the multicurrency option and "
                               "activate the currency?", currency_code_node.text))
 
+        # ==== Bank Details ====
+
+        bank_detail_nodes = tree.findall('.//{*}SpecifiedTradeSettlementPaymentMeans')
+        bank_details = [
+            bank_detail_node.findtext('{*}PayeePartyCreditorFinancialAccount/{*}IBANID')
+            or bank_detail_node.findtext('{*}PayeePartyCreditorFinancialAccount/{*}ProprietaryID')
+            for bank_detail_node in bank_detail_nodes
+        ]
+
+        if bank_details:
+            self._import_retrieve_and_fill_partner_bank_details(invoice, bank_details=bank_details)
+
         # ==== Reference ====
 
         ref_node = tree.find('./{*}ExchangedDocument/{*}ID')
@@ -281,7 +293,7 @@ class AccountEdiXmlCII(models.AbstractModel):
 
         # ==== Invoice origin ====
 
-        invoice_origin_node = tree.find('./{*}OrderReference/{*}ID')
+        invoice_origin_node = tree.find('.//{*}BuyerOrderReferencedDocument/{*}IssuerAssignedID')
         if invoice_origin_node is not None:
             invoice.invoice_origin = invoice_origin_node.text
 
@@ -300,7 +312,7 @@ class AccountEdiXmlCII(models.AbstractModel):
 
         # ==== payment_reference ====
 
-        payment_reference_node = tree.find('.//{*}BuyerOrderReferencedDocument/{*}IssuerAssignedID')
+        payment_reference_node = tree.find('./{*}SupplyChainTradeTransaction/{*}ApplicableHeaderTradeSettlement/{*}PaymentReference')
         if payment_reference_node is not None:
             invoice.payment_reference = payment_reference_node.text
 

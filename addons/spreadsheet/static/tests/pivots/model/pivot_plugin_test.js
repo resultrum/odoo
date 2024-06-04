@@ -19,6 +19,7 @@ import {
 import { makeDeferred, nextTick, patchWithCleanup } from "@web/../tests/helpers/utils";
 import { session } from "@web/session";
 import { makeServerError } from "@web/../tests/helpers/mock_server";
+import { getBasicServerData } from "../../utils/data";
 
 import * as spreadsheet from "@odoo/o-spreadsheet";
 const { DEFAULT_LOCALE } = spreadsheet.constants;
@@ -518,6 +519,34 @@ QUnit.module("spreadsheet > pivot plugin", {}, () => {
         assert.verifySteps(["partner/fields_get", "partner/read_group"]);
     });
 
+    QUnit.test("pivot grouped by char field which represents numbers", async function (assert) {
+        const serverData = getBasicServerData();
+        serverData.models.partner.records = [
+            { id: 1, name: "111", probability: 11 },
+            { id: 2, name: "000111", probability: 15 },
+        ];
+
+        const { model } = await createSpreadsheetWithPivot({
+            serverData,
+            arch: /*xml*/ `
+                <pivot>
+                    <field name="name" type="row"/>
+                    <field name="probability" type="measure"/>
+                </pivot>`,
+        });
+        assert.strictEqual(getCell(model, "A3").content, '=ODOO.PIVOT.HEADER(1,"name","000111")');
+        assert.strictEqual(getCell(model, "A4").content, '=ODOO.PIVOT.HEADER(1,"name",111)');
+        assert.strictEqual(getEvaluatedCell(model, "A3").value, "000111");
+        assert.strictEqual(getEvaluatedCell(model, "A4").value, "111");
+        assert.strictEqual(
+            getCell(model, "B3").content,
+            '=ODOO.PIVOT(1,"probability","name","000111")'
+        );
+        assert.strictEqual(getCell(model, "B4").content, '=ODOO.PIVOT(1,"probability","name",111)');
+        assert.strictEqual(getEvaluatedCell(model, "B3").value, 15);
+        assert.strictEqual(getEvaluatedCell(model, "B4").value, 11);
+    });
+
     QUnit.test("relational PIVOT.HEADER with missing id", async function (assert) {
         assert.expect(1);
 
@@ -569,6 +598,66 @@ QUnit.module("spreadsheet > pivot plugin", {}, () => {
         assert.equal(getCellValue(model, "D4"), 10);
         assert.equal(getCellValue(model, "E4"), 95);
     });
+
+    QUnit.test("aggregate to 0", async function (assert) {
+        const serverData = getBasicServerData();
+        serverData.models.partner.records = [
+            { id: 1, name: "A", probability: 10 },
+            { id: 2, name: "B", probability: -10 },
+        ];
+
+        const { model } = await createSpreadsheetWithPivot({
+            serverData,
+            arch: /*xml*/ `
+                <pivot>
+                    <field name="name" type="row"/>
+                    <field name="probability" type="measure"/>
+                </pivot>`,
+        });
+        setCellContent(model, "A1", '=ODOO.PIVOT(1, "probability", "name", "A")');
+        setCellContent(model, "A2", '=ODOO.PIVOT(1, "probability", "name", "B")');
+        setCellContent(model, "A3", '=ODOO.PIVOT(1, "probability")');
+        assert.strictEqual(getEvaluatedCell(model, "A1").value, 10);
+        assert.strictEqual(getEvaluatedCell(model, "A2").value, -10);
+        assert.strictEqual(getEvaluatedCell(model, "A3").value, 0);
+    });
+
+    QUnit.test(
+        "pivot formula for total should return empty string instead of 'FALSE' when pivot doesn't match any data",
+        async function (assert) {
+            const serverData = getBasicServerData();
+            serverData.models.partner.records = [{ id: 1, name: "A", probability: 10 }];
+
+            const { model } = await createSpreadsheetWithPivot({
+                serverData,
+                arch: /*xml*/ `
+                <pivot>
+                    <field name="name" type="row"/>
+                    <field name="probability" type="measure"/>
+                </pivot>`,
+            });
+
+            model.dispatch("UPDATE_ODOO_PIVOT_DOMAIN", {
+                pivotId: 1,
+                domain: [["probability", "=", 100]],
+            });
+            await waitForDataSourcesLoaded(model);
+
+            setCellContent(model, "A1", '=ODOO.PIVOT(1, "probability", "name", "A")');
+            setCellContent(model, "A2", '=ODOO.PIVOT(1, "probability")');
+            assert.strictEqual(getEvaluatedCell(model, "A1").value, "");
+            assert.strictEqual(getEvaluatedCell(model, "A2").value, "");
+
+            model.dispatch("UPDATE_ODOO_PIVOT_DOMAIN", {
+                pivotId: 1,
+                domain: [],
+            });
+            await waitForDataSourcesLoaded(model);
+
+            assert.strictEqual(getEvaluatedCell(model, "A1").value, 10);
+            assert.strictEqual(getEvaluatedCell(model, "A2").value, 10);
+        }
+    );
 
     QUnit.test("can import/export sorted pivot", async (assert) => {
         const spreadsheetData = {
