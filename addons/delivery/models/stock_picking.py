@@ -322,8 +322,13 @@ class StockPicking(models.Model):
         return client_action
 
     def cancel_shipment(self):
+        no_carrier_cancel = self.env.context.get(
+            'no_carrier_cancel',
+            False
+        )
         for picking in self:
-            picking.carrier_id.cancel_shipment(self)
+            if not no_carrier_cancel:
+                picking.carrier_id.cancel_shipment(self)
             msg = "Shipment %s cancelled" % picking.carrier_tracking_ref
             picking.message_post(body=msg)
             picking.carrier_tracking_ref = False
