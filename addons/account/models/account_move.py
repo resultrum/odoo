@@ -1258,11 +1258,7 @@ class AccountMove(models.Model):
                     # - the move already has a name, or
                     # - the move has no name, but is in a period with other moves (so name should be `/`), or
                     # - the move has (temporarily) no date set
-                    if (
-                        move_has_name and move.posted_before
-                        or not move_has_name and move._get_last_sequence(lock=False)
-                        or not move.date
-                    ):
+                    if move.keep_move_name(move_has_name):
                         continue
                 except ValidationError:
                     # The move was never posted and the current name doesn't match the date. We should calculate the
@@ -1310,6 +1306,15 @@ class AccountMove(models.Model):
             batch['records']._compute_split_sequence()
 
         self.filtered(lambda m: not m.name).name = '/'
+
+    def keep_move_name(self, move_has_name):
+        self.ensure_one()
+        move = self
+        return (
+            move_has_name and move.posted_before
+            or not move_has_name and move._get_last_sequence(lock=False)
+            or not move.date
+        )
 
     @api.depends('journal_id', 'date')
     def _compute_highest_name(self):
