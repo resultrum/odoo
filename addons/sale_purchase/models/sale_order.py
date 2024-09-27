@@ -175,12 +175,20 @@ class SaleOrderLine(models.Model):
         """
         for line in self:
             last_purchase_line = self.env['purchase.order.line'].search([('sale_line_id', '=', line.id)], order='create_date DESC', limit=1)
-            if last_purchase_line.state in ['draft', 'sent', 'to approve']:  # update qty for draft PO lines
+            if line.need_update_quantity(last_purchase_line):  # update qty for draft PO lines
                 quantity = line.product_uom._compute_quantity(new_qty, last_purchase_line.product_uom)
                 last_purchase_line.write({'product_qty': quantity})
-            elif last_purchase_line.state in ['purchase', 'done', 'cancel']:  # create new PO, by forcing the quantity as the difference from SO line
+            elif line.need_purchase_service_create(last_purchase_line):  # create new PO, by forcing the quantity as the difference from SO line
                 quantity = line.product_uom._compute_quantity(new_qty - origin_values.get(line.id, 0.0), last_purchase_line.product_uom)
                 line._purchase_service_create(quantity=quantity)
+
+    def need_update_quantity(self, last_purchase_line):
+        self.ensure_one()
+        return last_purchase_line.state in ['draft', 'sent', 'to approve']
+
+    def need_purchase_service_create(self, last_purchase_line):
+        self.ensure_one()
+        return last_purchase_line.state in ['purchase', 'done', 'cancel']
 
     def _purchase_get_date_order(self, supplierinfo):
         """ return the ordered date for the purchase order, computed as : SO commitment date - supplier delay """
