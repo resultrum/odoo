@@ -11,16 +11,18 @@
 # Geoffrey_GMF <gmf@odoo.com>, 2022
 # Alexandra Jubert, 2022
 # Cécile Collart <cco@odoo.com>, 2022
-# Jolien De Paepe, 2023
+# Manon Rondou, 2024
+# Jolien De Paepe, 2024
+# Wil Odoo, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-01-24 08:19+0000\n"
+"POT-Creation-Date: 2024-08-14 15:42+0000\n"
 "PO-Revision-Date: 2021-09-14 12:24+0000\n"
-"Last-Translator: Jolien De Paepe, 2023\n"
-"Language-Team: French (https://www.transifex.com/odoo/teams/41243/fr/)\n"
+"Last-Translator: Wil Odoo, 2024\n"
+"Language-Team: French (https://app.transifex.com/odoo/teams/41243/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -116,11 +118,6 @@ msgstr "%s ne peuvent être supprimés. Essayer de les supprimer d'abord."
 #: model_terms:ir.ui.view,arch_db:mrp.report_mrp_bom
 msgid "&amp; Cost"
 msgstr "& coût "
-
-#. module: mrp
-#: model_terms:ir.ui.view,arch_db:mrp.view_immediate_production
-msgid "&gt;"
-msgstr ">"
 
 #. module: mrp
 #: model:ir.actions.report,print_report_name:mrp.action_report_bom_structure
@@ -464,7 +461,7 @@ msgstr "Activités"
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__activity_exception_decoration
 #: model:ir.model.fields,field_description:mrp.field_mrp_unbuild__activity_exception_decoration
 msgid "Activity Exception Decoration"
-msgstr "Activité d'exception de décoration"
+msgstr "Activité exception décoration"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__activity_state
@@ -538,7 +535,7 @@ msgid ""
 "Allow manufacturing users to modify quantities to consume, without the need "
 "for prior approval"
 msgstr ""
-"Autorisez les utilisateurs du module de modifier les quantités à consommer, "
+"Autoriser les utilisateurs du module de modifier les quantités à consommer, "
 "sans devoir passer par une approbation"
 
 #. module: mrp
@@ -546,7 +543,7 @@ msgstr ""
 #: model:ir.model.fields,help:mrp.field_stock_picking_type__use_create_components_lots
 msgid "Allow to create new lot/serial numbers for the components"
 msgstr ""
-"Permettre de créer de nouveaux numéros de lot/série pour les composants"
+"Autoriser la création de nouveaux lots/numéros de série pour les composants"
 
 #. module: mrp
 #: model:ir.model.fields.selection,name:mrp.selection__mrp_bom__consumption__flexible
@@ -606,7 +603,7 @@ msgstr "Appliquer"
 #: model:ir.model.fields,field_description:mrp.field_mrp_bom_line__bom_product_template_attribute_value_ids
 #: model:ir.model.fields,field_description:mrp.field_mrp_routing_workcenter__bom_product_template_attribute_value_ids
 msgid "Apply on Variants"
-msgstr "Appliquer sur les variantes"
+msgstr "Appliquer aux variantes"
 
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.view_change_production_qty_wizard
@@ -626,7 +623,7 @@ msgstr "Archivé"
 #. module: mrp
 #: model:ir.actions.act_window,name:mrp.act_assign_serial_numbers_production
 msgid "Assign Serial Numbers"
-msgstr "Attribuer numéro de série"
+msgstr "Assigner des numéros de série"
 
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_bom_form_view
@@ -923,14 +920,6 @@ msgstr "Structure de nomenclature & Coût"
 #: model_terms:ir.ui.view,arch_db:mrp.view_mrp_bom_filter
 msgid "BoM Type"
 msgstr "Type de nomenclature"
-
-#. module: mrp
-#: code:addons/mrp/models/mrp_bom.py:0
-#, python-format
-msgid "BoM line product %s should not be the same as BoM product."
-msgstr ""
-"L'article %s sur la ligne de nomenclature ne peut être le même que le "
-"produit fini."
 
 #. module: mrp
 #: model:product.product,name:mrp.product_product_computer_desk_bolt
@@ -1344,7 +1333,7 @@ msgstr "Créer un reliquat "
 #: model_terms:ir.ui.view,arch_db:mrp.res_config_settings_view_form
 msgid "Create customizable worksheets for your quality checks"
 msgstr ""
-"Créez des feuilles de travail personnalisables pour vos contrôles qualité"
+"Créer des feuilles de travail personnalisables pour vos contrôles qualité"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_stock_move__created_production_id
@@ -1605,7 +1594,7 @@ msgstr "Ignorer"
 #: model:ir.model.fields,field_description:mrp.field_mrp_workorder__display_name
 #: model:ir.model.fields,field_description:mrp.field_stock_warn_insufficient_qty_unbuild__display_name
 msgid "Display Name"
-msgstr "Afficher Nom"
+msgstr "Nom d'affichage"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__show_serial_mass_produce
@@ -1837,7 +1826,7 @@ msgstr "Terminé"
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_stock_move__order_finished_lot_ids
 msgid "Finished Lot/Serial Number"
-msgstr "Numéro de lot/de série terminé"
+msgstr "Lot/numéro de série terminé"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_workorder__move_finished_ids
@@ -2453,16 +2442,6 @@ msgid "Line of issue consumption"
 msgstr "Ligne de problème de consommation"
 
 #. module: mrp
-#: code:addons/mrp/models/mrp_production.py:0
-#, python-format
-msgid ""
-"Lines need to be deleted, but can not as you still have some quantities to "
-"consume in them. "
-msgstr ""
-"Ces lignes doivent être supprimées, mais l'opération est impossible car "
-"elles comportent des quantités non consommées."
-
-#. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_stock_warn_insufficient_qty_unbuild__location_id
 msgid "Location"
 msgstr "Lieu"
@@ -2527,12 +2506,12 @@ msgstr "Lot/numéro de série"
 #. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_unbuild__lot_id
 msgid "Lot/Serial Number of the product to unbuild."
-msgstr "Numéro de lot/série de l'article à déconstruire."
+msgstr "Lot/numéro de série de l'article à déconstruire."
 
 #. module: mrp
 #: model:ir.ui.menu,name:mrp.menu_mrp_traceability
 msgid "Lots/Serial Numbers"
-msgstr "Numéros de lots/séries"
+msgstr "Lots/Numéros de série"
 
 #. module: mrp
 #: model:ir.model.fields.selection,name:mrp.selection__mrp_document__priority__1
@@ -2656,7 +2635,7 @@ msgstr "Fabriquer ce produit"
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_stock_warehouse__manufacture_to_resupply
 msgid "Manufacture to Resupply"
-msgstr "Fabriquer pour réassortir"
+msgstr "Fabriquer pour réapprovisionner"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_product_product__mrp_product_qty
@@ -2891,6 +2870,7 @@ msgstr "Nom"
 #: code:addons/mrp/models/mrp_unbuild.py:0
 #: code:addons/mrp/models/mrp_unbuild.py:0
 #: code:addons/mrp/models/mrp_unbuild.py:0
+#: code:addons/mrp/models/stock_rule.py:0
 #, python-format
 msgid "New"
 msgstr "Nouveau"
@@ -3083,29 +3063,12 @@ msgstr "Nombre de messages avec des erreurs d'envoi"
 #. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_workcenter__capacity
 msgid ""
-"Number of pieces (in product UoM) that can be produced in parallel  (at the "
+"Number of pieces (in product UoM) that can be produced in parallel (at the "
 "same time) at this work center. For example: the capacity is 5 and you need "
 "to produce 10 units, then the operation time listed on the BOM will be "
 "multiplied by two. However, note that both time before and after production "
-"will only be counted once. "
+"will only be counted once."
 msgstr ""
-"Nombre de pièces (dans l'unité de mesure du produit) pouvant être fabriquées"
-" en parallèle (en même temps) sur ce poste de travail. Par exemple, la "
-"capacité est de 5 et vous devez produire 10 unités, alors le temps de "
-"fonctionnement indiqué sur la nomenclature sera multiplié par deux. "
-"Cependant, notez que le temps avant et après la production ne sera compté "
-"qu'une seule fois."
-
-#. module: mrp
-#: model:ir.model.fields,help:mrp.field_mrp_bom__product_qty
-msgid ""
-"This should be the smallest quantity that this product can be produced in. "
-"If the BOM contains operations, make sure the work center capacity is "
-"accurate. "
-msgstr ""
-"Il doit s'agir de la plus petite quantité dans laquelle ce produit peut être"
-" produit. Si la nomenclature contient des opérations, assurez-vous que la "
-"capacité du poste de travail est précise."
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__mrp_production_source_count
@@ -3127,7 +3090,7 @@ msgstr "TRS"
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_workcenter__oee_target
 msgid "OEE Target"
-msgstr "TRS cible"
+msgstr "Objectif TRS"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_workcenter__oee
@@ -3330,7 +3293,7 @@ msgstr "Collecter les composants et ensuite fabriquer"
 #. module: mrp
 #: model:ir.model.fields.selection,name:mrp.selection__stock_warehouse__manufacture_steps__pbm
 msgid "Pick components and then manufacture (2 steps)"
-msgstr "Collecter les composants et ensuite fabriquer (2 étapes)"
+msgstr "Prélever les composants et ensuite fabriquer (2 étapes)"
 
 #. module: mrp
 #: code:addons/mrp/models/stock_warehouse.py:0
@@ -3338,7 +3301,7 @@ msgstr "Collecter les composants et ensuite fabriquer (2 étapes)"
 #, python-format
 msgid "Pick components, manufacture and then store products (3 steps)"
 msgstr ""
-"Collecter les composants, fabriquer et ensuite stocker les produits (3 "
+"Prélever les composants, fabriquer et ensuite stocker les produits (3 "
 "étapes)"
 
 #. module: mrp
@@ -3375,7 +3338,7 @@ msgstr "Collecte avant la zone de fabrication"
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_production_form_view
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_production_tree_view
 msgid "Plan"
-msgstr "Plan"
+msgstr "Programmer"
 
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_workcenter_kanban
@@ -3815,6 +3778,11 @@ msgid "Quantity:"
 msgstr "Quantité :"
 
 #. module: mrp
+#: model:ir.model,name:mrp.model_stock_quant
+msgid "Quants"
+msgstr "Quantités"
+
+#. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_workorder__move_raw_ids
 msgid "Raw Moves"
 msgstr "Mouvements bruts"
@@ -3940,6 +3908,12 @@ msgid "Responsible User"
 msgstr "Responsable"
 
 #. module: mrp
+#: code:addons/mrp/models/stock_quant.py:0
+#, python-format
+msgid "Return to Inventory"
+msgstr "Revenir à l'inventaire"
+
+#. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_workcenter__routing_line_ids
 msgid "Routing Lines"
 msgstr "Lignes de gamme"
@@ -3978,6 +3952,11 @@ msgstr "Date prévue"
 #: model_terms:ir.ui.view,arch_db:mrp.view_mrp_production_filter
 msgid "Scheduled Date by Month"
 msgstr "Date planifiée, par mois"
+
+#. module: mrp
+#: model_terms:ir.ui.view,arch_db:mrp.view_mrp_production_filter
+msgid "Scheduled Date: Last 365 Days"
+msgstr "Date planifiée : 365 derniers jours"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_production__date_planned_finished
@@ -4561,6 +4540,22 @@ msgid "The capacity must be strictly positive."
 msgstr "La capacité doit être strictement positive."
 
 #. module: mrp
+#: code:addons/mrp/models/mrp_production.py:0
+#, python-format
+msgid "The component %s should not be the same as the product to produce."
+msgstr "Le composant %s ne doit pas être le même que le produit à produire."
+
+#. module: mrp
+#: code:addons/mrp/models/mrp_bom.py:0
+#, python-format
+msgid ""
+"The current configuration is incorrect because it would create a cycle "
+"between these products: %s."
+msgstr ""
+"La configuration actuelle est incorrecte, parce qu'elle crée un cycle entre "
+"ces produits : %s."
+
+#. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_document__res_model
 msgid "The database object this attachment will be attached to."
 msgstr "L'objet de la base de données auquel cette pièce-jointe sera liée."
@@ -4569,7 +4564,7 @@ msgstr "L'objet de la base de données auquel cette pièce-jointe sera liée."
 #: code:addons/mrp/models/stock_orderpoint.py:0
 #, python-format
 msgid "The following replenishment order has been generated"
-msgstr "La commande de  réapprovisionnement suivante a été générée"
+msgstr "L'ordre de réapprovisionnement suivant a été généré"
 
 #. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_workorder__qty_produced
@@ -4628,12 +4623,6 @@ msgstr ""
 "Le produit a déjà été utilisé au moins une fois, modifier sa structure peut "
 "entraîner des comportements indésirables. Vous devriez plutôt archiver le "
 "produit et en créer un nouveau avec une nouvelle nomenclature."
-
-#. module: mrp
-#: code:addons/mrp/models/mrp_production.py:0
-#, python-format
-msgid "The quantity produced of by-products must be positive."
-msgstr "La quantité produite de sous-produits doit être positive."
 
 #. module: mrp
 #: code:addons/mrp/models/mrp_production.py:0
@@ -4794,10 +4783,20 @@ msgstr ""
 
 #. module: mrp
 #: code:addons/mrp/models/mrp_production.py:0
-#: code:addons/mrp/models/mrp_workorder.py:0
 #, python-format
 msgid "This serial number for product %s has already been produced"
 msgstr "Le numéro de série pour le produit %s a déjà été produit."
+
+#. module: mrp
+#: model:ir.model.fields,help:mrp.field_mrp_bom__product_qty
+msgid ""
+"This should be the smallest quantity that this product can be produced in. "
+"If the BOM contains operations, make sure the work center capacity is "
+"accurate."
+msgstr ""
+"Il doit s'agir de la plus petite quantité dans laquelle ce produit peut être"
+" produit. Si la nomenclature contient des opérations, assurez-vous que la "
+"capacité du poste de travail est exacte."
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_workorder__time_ids
@@ -5224,7 +5223,7 @@ msgid ""
 "forecasts."
 msgstr ""
 "Si vous disposez d'un délai long et si vous produisez en fonction de "
-"prévisions des ventes, un rapport MPS s'avère être utile pour planifier vos "
+"prévisions des ventes, un rapport PDP s'avère être utile pour planifier vos "
 "opérations de réapprovisionnement et de fabrication."
 
 #. module: mrp
@@ -5300,7 +5299,10 @@ msgstr "Prévenir en cas de quantité non fabriquée insuffisante"
 
 #. module: mrp
 #: code:addons/mrp/models/mrp_bom.py:0 code:addons/mrp/models/mrp_bom.py:0
+#: code:addons/mrp/models/mrp_bom.py:0
 #: code:addons/mrp/models/mrp_production.py:0
+#: code:addons/mrp/models/mrp_unbuild.py:0
+#: code:addons/mrp/models/mrp_unbuild.py:0
 #: code:addons/mrp/models/stock_scrap.py:0
 #, python-format
 msgid "Warning"
@@ -5644,7 +5646,7 @@ msgid ""
 "the operation type and tick the box \"Create New Lots/Serial Numbers for "
 "Components\"."
 msgstr ""
-"Vous n'êtes pas autorisé à créer ou éditer un numéro de lot/de série pour "
+"Vous n'êtes pas autorisé à créer ou modifier un numéro de lot/de série pour "
 "des composants dans une opération de type \"Fabrication\". Pour changer "
 "cela, vous pouvez aller sur le type d'opération et sélectionner \"Créer "
 "nouveaux lots/numéros de série pour les composants\"."
@@ -5867,6 +5869,16 @@ msgstr "Vous avez produit moins que la demande initiale"
 #, python-format
 msgid "You should provide a lot number for the final product."
 msgstr "Vous devriez fournir un numéro de lot pour le produit fini."
+
+#. module: mrp
+#: code:addons/mrp/models/stock_quant.py:0
+#, python-format
+msgid ""
+"You should update the components quantity instead of directly updating the "
+"quantity of the kit product."
+msgstr ""
+"Il est préférable de mettre à jour la quantité de composants plutôt que de "
+"mettre directement à jour la quantité du produit en kit."
 
 #. module: mrp
 #: model_terms:ir.actions.act_window,help:mrp.mrp_production_action

@@ -8,7 +8,10 @@ from odoo.tools import float_compare
 class TestDeliveryCost(common.TransactionCase):
 
     def setUp(self):
-        super(TestDeliveryCost, self).setUp()
+        super().setUp()
+        self.env.company.write({
+            'country_id': self.env.ref('base.us').id,
+        })
         self.SaleOrder = self.env['sale.order']
         self.SaleOrderLine = self.env['sale.order.line']
         self.AccountAccount = self.env['account.account']
@@ -17,7 +20,7 @@ class TestDeliveryCost(common.TransactionCase):
 
         self.partner_18 = self.env['res.partner'].create({'name': 'My Test Customer'})
         self.pricelist = self.env.ref('product.list0')
-        self.product_4 = self.env['product.product'].create({'name': 'A product to deliver'})
+        self.product_4 = self.env['product.product'].create({'name': 'A product to deliver', 'weight': 1.0})
         self.product_uom_unit = self.env.ref('uom.product_uom_unit')
         self.product_delivery_normal = self.env['product.product'].create({
             'name': 'Normal Delivery Charges',
@@ -39,7 +42,7 @@ class TestDeliveryCost(common.TransactionCase):
         self.product_uom_hour = self.env.ref('uom.product_uom_hour')
         self.account_data = self.env.ref('account.data_account_type_revenue')
         self.account_tag_operating = self.env.ref('account.account_tag_operating')
-        self.product_2 = self.env['product.product'].create({'name': 'Zizizaproduct'})
+        self.product_2 = self.env['product.product'].create({'name': 'Zizizaproduct', 'weight': 1.0})
         self.product_category = self.env.ref('product.product_category_all')
         self.free_delivery = self.env.ref('delivery.free_delivery_carrier')
         # as the tests hereunder assume all the prices in USD, we must ensure
@@ -381,3 +384,64 @@ class TestDeliveryCost(common.TransactionCase):
 
         self.assertEqual(len(sale_normal_delivery_charges.order_line), 3)
         self.assertEqual(sale_normal_delivery_charges.amount_untaxed, 80.0, "Delivery cost is not Added")
+
+    def test_estimated_weight(self):
+        """
+        Test that negative qty SO lines are not included in the estimated weight calculation
+        of delivery carriers (since it's used when calculating their rates).
+        """
+        sale_order = self.SaleOrder.create({
+            'partner_id': self.partner_18.id,
+            'name': 'SO - neg qty',
+            'order_line': [
+                (0, 0, {
+                    'product_id': self.product_4.id,
+                    'product_uom_qty': 1,
+                    'product_uom': self.product_uom_unit.id,
+                }),
+                (0, 0, {
+                    'product_id': self.product_2.id,
+                    'product_uom_qty': -1,
+                    'product_uom': self.product_uom_unit.id,
+                })],
+        })
+        shipping_weight = sale_order._get_estimated_weight()
+        self.assertEqual(shipping_weight, self.product_4.weight, "Only positive quantity products' weights should be included in estimated weight")
+
+    def test_price_with_weight_volume_variable(self):
+        """ Test that the price is correctly computed when the variable is weight*volume. """
+        qty = 3
+        list_price = 2
+        volume = 2.5
+        weight = 1.5
+        sale_order = self.env['sale.order'].create({
+            'partner_id': self.partner_18.id,
+            'order_line': [
+                (0, 0, {
+                    'product_id': self.env['product.product'].create({
+                        'name': 'wv',
+                        'weight': weight,
+                        'volume': volume,
+                    }).id,
+                    'product_uom_qty': qty,
+                    'product_uom': self.product_uom_unit.id,
+                }),
+            ],
+        })
+        delivery = self.env['delivery.carrier'].create({
+            'name': 'Delivery Charges',
+            'delivery_type': 'base_on_rule',
+            'product_id': self.product_delivery_normal.id,
+            'price_rule_ids': [(0, 0, {
+                'variable': 'price',
+                'operator': '>=',
+                'max_value': 0,
+                'list_price': list_price,
+                'variable_factor': 'wv',
+            })]
+        })
+        self.assertEqual(
+            delivery._get_price_available(sale_order),
+            qty * list_price * weight * volume,
+            "The shipping price is not correctly computed with variable weight*volume.",
+        )

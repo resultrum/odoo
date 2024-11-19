@@ -91,12 +91,17 @@ class StockRule(models.Model):
             warehouse_id = rule.warehouse_id
             if not warehouse_id:
                 warehouse_id = rule.location_id.warehouse_id
-            if rule.picking_type_id == warehouse_id.sam_type_id:
+            manu_rule = rule.route_id.rule_ids.filtered(lambda r: r.action == 'manufacture' and r.warehouse_id == warehouse_id)
+            if warehouse_id.manufacture_steps != 'pbm_sam' or not manu_rule:
+                continue
+            if rule.picking_type_id == warehouse_id.sam_type_id or (
+                warehouse_id.sam_loc_id and warehouse_id.sam_loc_id.parent_path in rule.location_src_id.parent_path
+            ):
                 if float_compare(procurement.product_qty, 0, precision_rounding=procurement.product_uom.rounding) < 0:
                     procurement.values['group_id'] = procurement.values['group_id'].stock_move_ids.filtered(
                         lambda m: m.state not in ['done', 'cancel']).move_orig_ids.group_id[:1]
                     continue
-                manu_type_id = warehouse_id.manu_type_id
+                manu_type_id = manu_rule[0].picking_type_id
                 if manu_type_id:
                     name = manu_type_id.sequence_id.next_by_id()
                 else:
@@ -119,6 +124,8 @@ class StockRule(models.Model):
     def _get_matching_bom(self, product_id, company_id, values):
         if values.get('bom_id', False):
             return values['bom_id']
+        if values.get('orderpoint_id', False) and values['orderpoint_id'].bom_id:
+            return values['orderpoint_id'].bom_id
         return self.env['mrp.bom']._bom_find(product_id, picking_type=self.picking_type_id, bom_type='normal', company_id=company_id.id)[product_id]
 
     def _prepare_mo_vals(self, product_id, product_qty, product_uom, location_id, name, origin, company_id, values, bom):

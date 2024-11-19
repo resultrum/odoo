@@ -4,7 +4,7 @@
 # 
 # Translators:
 # Hamid Reza Kaveh <hamidrkp@riseup.net>, 2022
-# Far Har <fhari1234@gmail.com>, 2022
+# F Hariri <fhari1234@gmail.com>, 2022
 # سید محمد آذربرا <mohammadazarbara98@gmail.com>, 2022
 # Arash Sardari <arashss77@gmail.com>, 2022
 # Hamid Darabi, 2022
@@ -14,15 +14,16 @@
 # Martin Trigaux, 2022
 # Mohammad Tahmasebi <hit.tah75@gmail.com>, 2022
 # Hanna Kheradroosta, 2022
+# Mostafa Barmshory <mostafa.barmshory@gmail.com>, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-05 10:55+0000\n"
+"POT-Creation-Date: 2024-08-14 15:44+0000\n"
 "PO-Revision-Date: 2021-09-14 12:24+0000\n"
-"Last-Translator: Hanna Kheradroosta, 2022\n"
-"Language-Team: Persian (https://www.transifex.com/odoo/teams/41243/fa/)\n"
+"Last-Translator: Mostafa Barmshory <mostafa.barmshory@gmail.com>, 2024\n"
+"Language-Team: Persian (https://app.transifex.com/odoo/teams/41243/fa/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -74,7 +75,17 @@ msgstr "<i class=\"fa fa-pencil\"/> ویرایش"
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_my_security
 msgid "<i title=\"Documentation\" class=\"fa fa-fw o_button_icon fa-info-circle\"/>"
-msgstr ""
+msgstr "<i title=\"Documentation\" class=\"fa fa-fw o_button_icon fa-info-circle\"/>"
+
+#. module: portal
+#: model_terms:ir.ui.view,arch_db:portal.portal_my_details
+msgid "<option value=\"\">Country...</option>"
+msgstr "کشور"
+
+#. module: portal
+#: model_terms:ir.ui.view,arch_db:portal.portal_my_details
+msgid "<option value=\"\">select...</option>"
+msgstr "<option value=\"\">انتخاب...</option>"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_my_details
@@ -83,6 +94,20 @@ msgid ""
 " not allowed once document(s) have been issued for your account. <br/>Please"
 " contact us directly for this operation.</small>"
 msgstr ""
+
+#. module: portal
+#: model_terms:ir.ui.view,arch_db:portal.pager
+msgid ""
+"<span class=\"fa fa-chevron-left\" role=\"img\" aria-label=\"Previous\" "
+"title=\"Previous\"/>"
+msgstr ""
+"<span class=\"fa fa-chevron-left\" role=\"img\" aria-label=\"Previous\" "
+"title=\"Previous\"/>"
+
+#. module: portal
+#: model_terms:ir.ui.view,arch_db:portal.pager
+msgid "<span class=\"fa fa-chevron-right\" role=\"img\" aria-label=\"Next\" title=\"Next\"/>"
+msgstr "<span class=\"fa fa-chevron-right\" role=\"img\" aria-label=\"Next\" title=\"Next\"/>"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_searchbar
@@ -192,7 +217,7 @@ msgstr ""
 #: code:addons/portal/static/src/js/portal.js:0
 #, python-format
 msgid "API Key Ready"
-msgstr ""
+msgstr "کلید API آماده است"
 
 #. module: portal
 #. openerp-web
@@ -240,12 +265,6 @@ msgid "Added On"
 msgstr "اضافه شده در"
 
 #. module: portal
-#: code:addons/portal/controllers/mail.py:0
-#, python-format
-msgid "An access token must be provided for each attachment."
-msgstr "یک توکن دسترسی باید برای هر پیوست فراهم شود."
-
-#. module: portal
 #. openerp-web
 #: code:addons/portal/static/src/xml/portal_chatter.xml:0
 #, python-format
@@ -273,6 +292,8 @@ msgid ""
 "Changing VAT number is not allowed once document(s) have been issued for "
 "your account. Please contact us directly for this operation."
 msgstr ""
+"تغییر شماره مالیات بر ارزش افزوده (VAT) پس از صدور مستندات برای حساب شما "
+"مجاز نیست. لطفاً برای انجام این عملیات مستقیماً با ما تماس بگیرید"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_my_details
@@ -280,6 +301,8 @@ msgid ""
 "Changing company name is not allowed once document(s) have been issued for "
 "your account. Please contact us directly for this operation."
 msgstr ""
+"تغییر نام شرکت پس از صدور مستندات برای حساب شما مجاز نیست. لطفاً برای انجام "
+"این عملیات مستقیماً با ما تماس بگیرید."
 
 #. module: portal
 #. openerp-web
@@ -371,11 +394,6 @@ msgid "Country"
 msgstr "کشور"
 
 #. module: portal
-#: model_terms:ir.ui.view,arch_db:portal.portal_my_details
-msgid "Country..."
-msgstr "کشور..."
-
-#. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_share__create_uid
 #: model:ir.model.fields,field_description:portal.field_portal_wizard__create_uid
 #: model:ir.model.fields,field_description:portal.field_portal_wizard_user__create_uid
@@ -397,6 +415,8 @@ msgid ""
 "Currently available to everyone viewing this document, click to restrict to "
 "internal employees."
 msgstr ""
+"در حال حاضر برای همه کسانی که این سند را مشاهده می‌کنند در دسترس است. برای "
+"محدود کردن به کارکنان داخلی کلیک کنید."
 
 #. module: portal
 #. openerp-web
@@ -406,6 +426,8 @@ msgid ""
 "Currently restricted to internal employees, click to make it available to "
 "everyone viewing this document."
 msgstr ""
+"در حال حاضر محدود به کارکنان داخلی است. برای در دسترس قرار دادن آن برای همه "
+"کسانی که این سند را مشاهده می‌کنند، کلیک کنید."
 
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_res_config_settings__portal_allow_api_keys
@@ -443,7 +465,7 @@ msgstr "جزییات"
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_my_security
 msgid "Developer API Keys"
-msgstr ""
+msgstr "کلیدهای API توسعه‌دهنده"
 
 #. module: portal
 #. openerp-web
@@ -501,7 +523,7 @@ msgstr "فقط کارمندان"
 #: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "Enter a description of and purpose for the key."
-msgstr ""
+msgstr "توضیحی درباره کلید و هدف از آن را وارد کنید."
 
 #. module: portal
 #. openerp-web
@@ -513,7 +535,7 @@ msgstr "گذرواژه فراموش شده؟"
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.wizard_view
 msgid "Grant Access"
-msgstr ""
+msgstr "اجازه‌ی دسترسی"
 
 #. module: portal
 #: model:ir.model,name:portal.model_portal_wizard
@@ -539,6 +561,8 @@ msgid ""
 "Here is your new API key, use it instead of a password for RPC access.\n"
 "                Your login is still necessary for interactive usage."
 msgstr ""
+"این کلید API جدید شما است، از آن به جای رمز عبور برای دسترسی RPC استفاده کنید.\n"
+"ورود شما همچنان برای استفاده تعاملی ضروری است."
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_breadcrumbs
@@ -557,7 +581,14 @@ msgstr "شناسه"
 #: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "Important:"
-msgstr ""
+msgstr "مهم:"
+
+#. module: portal
+#. openerp-web
+#: code:addons/portal/static/src/xml/portal_chatter.xml:0
+#, python-format
+msgid "Internal Note"
+msgstr "یادداشت داخلی"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.wizard_view
@@ -568,15 +599,8 @@ msgstr "کاربر داخلی"
 #. openerp-web
 #: code:addons/portal/static/src/xml/portal_chatter.xml:0
 #, python-format
-msgid "Internal Note"
-msgstr "یادداشت داخلی"
-
-#. module: portal
-#. openerp-web
-#: code:addons/portal/static/src/xml/portal_chatter.xml:0
-#, python-format
 msgid "Internal notes are only displayed to internal users."
-msgstr ""
+msgstr "یادداشت‌های داخلی فقط برای کاربران داخلی نمایش داده می‌شود."
 
 #. module: portal
 #: code:addons/portal/controllers/portal.py:0
@@ -598,12 +622,12 @@ msgstr "پیام دعوت"
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_wizard_user__is_internal
 msgid "Is Internal"
-msgstr ""
+msgstr "داخلی است"
 
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_wizard_user__is_portal
 msgid "Is Portal"
-msgstr ""
+msgstr "پرتال است"
 
 #. module: portal
 #. openerp-web
@@ -613,6 +637,15 @@ msgid ""
 "It is very important that this description be clear\n"
 "                and complete,"
 msgstr ""
+"بسیار مهم است که این توصیف واضح باشد\n"
+"و کامل،"
+
+#. module: portal
+#. openerp-web
+#: code:addons/portal/static/src/xml/portal_security.xml:0
+#, python-format
+msgid "Key Description"
+msgstr "توضیحات کلید"
 
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_share____last_update
@@ -638,7 +671,7 @@ msgstr "آخرین به روز رسانی در"
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_wizard_user__login_date
 msgid "Latest Authentication"
-msgstr ""
+msgstr "آخرین احراز هویت"
 
 #. module: portal
 #. openerp-web
@@ -674,6 +707,8 @@ msgid ""
 "Model %(model_name)s does not support token signature, as it does not have "
 "%(field_name)s field."
 msgstr ""
+"مدل %(model_name)s از امضای توکن پشتیبانی نمی کند، زیرا فیلد %(field_name)s"
+"  ندارد."
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.my_account_link
@@ -690,7 +725,7 @@ msgstr "نام"
 #: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "Name your key"
-msgstr ""
+msgstr "نام کلید خود را وارد کنید"
 
 #. module: portal
 #. openerp-web
@@ -698,7 +733,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:portal.portal_my_security
 #, python-format
 msgid "New API Key"
-msgstr ""
+msgstr "کلید API جدید"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_my_security
@@ -709,7 +744,6 @@ msgstr "گذرواژه جدید:"
 #. openerp-web
 #: code:addons/portal/static/src/xml/portal_chatter.xml:0
 #: code:addons/portal/static/src/xml/portal_chatter.xml:0
-#: model_terms:ir.ui.view,arch_db:portal.pager
 #, python-format
 msgid "Next"
 msgstr "بعدی"
@@ -728,7 +762,7 @@ msgstr "لوگوی اودو"
 #: code:addons/portal/models/res_users_apikeys_description.py:0
 #, python-format
 msgid "Only internal and portal users can create API keys"
-msgstr ""
+msgstr "فقط کاربران داخلی و پرتال می‌توانند کلیدهای API ایجاد کنند"
 
 #. module: portal
 #. openerp-web
@@ -762,14 +796,14 @@ msgstr "تلفن"
 #: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "Please enter your password to confirm you own this account"
-msgstr ""
+msgstr "لطفاً گذرواژه خود را وارد کنید تا مالکیت این حساب را تأیید کنید."
 
 #. module: portal
 #: code:addons/portal/wizard/portal_wizard.py:0
 #: model_terms:ir.ui.view,arch_db:portal.wizard_view
 #, python-format
 msgid "Portal Access Management"
-msgstr ""
+msgstr "مدیریت دسترسی پرتال"
 
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_mixin__access_url
@@ -794,17 +828,12 @@ msgstr "پیکربندی کاربر پرتال"
 #. module: portal
 #: model:mail.template,name:portal.mail_template_data_portal_welcome
 msgid "Portal: User Invite"
-msgstr ""
+msgstr "پرتال: دعوت کاربر"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_record_sidebar
 msgid "Powered by"
 msgstr "راه اندازی شده به وسیله"
-
-#. module: portal
-#: model_terms:ir.ui.view,arch_db:portal.pager
-msgid "Prev"
-msgstr "قبلی"
 
 #. module: portal
 #. openerp-web
@@ -824,7 +853,7 @@ msgstr "منتشر شده روی %s"
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.wizard_view
 msgid "Re-Invite"
-msgstr ""
+msgstr "دعوت دوباره"
 
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_share__partner_ids
@@ -834,7 +863,7 @@ msgstr "گیرندگان"
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_share__resource_ref
 msgid "Related Document"
-msgstr ""
+msgstr "سند مرتبط"
 
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_share__res_id
@@ -849,12 +878,12 @@ msgstr "مدل سند مربوطه"
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.wizard_view
 msgid "Revoke Access"
-msgstr ""
+msgstr "دسترسی را لغو کنید"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_my_security
 msgid "Scope"
-msgstr ""
+msgstr "دامنه"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_searchbar
@@ -869,6 +898,7 @@ msgstr "امنیت"
 #. module: portal
 #. openerp-web
 #: code:addons/portal/static/src/js/portal.js:0
+#: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "Security Control"
 msgstr "کنترل امنیتی"
@@ -885,6 +915,9 @@ msgid ""
 "                        The email address of each selected contact must be valid and unique.\n"
 "                        If necessary, you can fix any contact's email address directly in the list."
 msgstr ""
+"در لیست زیر انتخاب کنید که کدام مخاطب باید متعلق به پورتال باشد.\n"
+"آدرس ایمیل هر مخاطب انتخابی باید معتبر و منحصر به فرد باشد.\n"
+"در صورت لزوم، می‌توانید آدرس ایمیل هر مخاطب را مستقیماً در لیست برطرف کنید."
 
 #. module: portal
 #. openerp-web
@@ -903,7 +936,7 @@ msgstr "اشتراک سند"
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_ir_ui_view__customize_show
 msgid "Show As Optional Inherit"
-msgstr ""
+msgstr "نمایش به‌عنوان ارث‌بری اختیاری"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.user_sign_in
@@ -918,6 +951,8 @@ msgid ""
 "Some fields are required. Please make sure to write a message or attach a "
 "document"
 msgstr ""
+"برخی از فیلدها ضروری هستند. لطفاً اطمینان حاصل کنید که پیامی نوشته‌اید یا "
+"سندی پیوست کرده‌اید"
 
 #. module: portal
 #: code:addons/portal/controllers/portal.py:0
@@ -946,34 +981,27 @@ msgstr "سپاسگزاریم!"
 #: code:addons/portal/controllers/portal.py:0
 #, python-format
 msgid "The attachment %s cannot be removed because it is linked to a message."
-msgstr ""
+msgstr "فایل پیوست %s  را نمی‌توان حذف کرد زیرا به یک پیام مرتبط است."
 
 #. module: portal
 #: code:addons/portal/controllers/portal.py:0
 #, python-format
 msgid ""
 "The attachment %s cannot be removed because it is not in a pending state."
-msgstr ""
-
-#. module: portal
-#: code:addons/portal/controllers/mail.py:0
-#, python-format
-msgid ""
-"The attachment %s does not exist or you do not have the rights to access it."
-msgstr ""
+msgstr "فایل پیوست %s را نمی‌توان حذف کرد زیرا در وضعیت معلق نیست."
 
 #. module: portal
 #: code:addons/portal/controllers/portal.py:0
 #, python-format
 msgid ""
 "The attachment does not exist or you do not have the rights to access it."
-msgstr ""
+msgstr "فایل پیوست وجود ندارد یا شما دسترسی لازم برای مشاهده آن را ندارید."
 
 #. module: portal
 #: code:addons/portal/wizard/portal_wizard.py:0
 #, python-format
 msgid "The contact \"%s\" does not have a valid email."
-msgstr ""
+msgstr "مخاطب \"%s\" ایمیل معتبر ندارد."
 
 #. module: portal
 #: code:addons/portal/wizard/portal_wizard.py:0
@@ -986,14 +1014,14 @@ msgstr ""
 #, python-format
 msgid ""
 "The document does not exist or you do not have the rights to access it."
-msgstr ""
+msgstr "سند وجود ندارد یا شما دسترسی لازم برای مشاهده آن را ندارید."
 
 #. module: portal
 #. openerp-web
 #: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "The key cannot be retrieved later and provides"
-msgstr ""
+msgstr "کلید بعداً قابل بازیابی نیست و فراهم می‌کند"
 
 #. module: portal
 #: code:addons/portal/controllers/portal.py:0
@@ -1012,7 +1040,7 @@ msgstr "این رمز عبور سابق شما, رمز عبور شما تغیی�
 #: code:addons/portal/wizard/portal_wizard.py:0
 #, python-format
 msgid "The partner \"%s\" already has the portal access."
-msgstr ""
+msgstr "همکار \"%s\" دسترسی به پرتال را دارد."
 
 #. module: portal
 #: code:addons/portal/wizard/portal_wizard.py:0
@@ -1026,7 +1054,7 @@ msgstr ""
 msgid ""
 "The template \"Portal: new user\" not found for sending email to the portal "
 "user."
-msgstr ""
+msgstr "قالب \"پرتال: کاربر جدید\" برای ارسال ایمیل به کاربر پورتال پیدا نشد."
 
 #. module: portal
 #. openerp-web
@@ -1052,22 +1080,26 @@ msgid ""
 "This partner is linked to an internal User and already has access to the "
 "Portal."
 msgstr ""
+"این همکار به یک کاربر داخلی مرتبط است و در حال حاضر دسترسی به پرتال دارد."
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.wizard_view
 msgid ""
 "This text is included at the end of the email sent to new portal users."
 msgstr ""
+"این متن در انتهای ایمیلی که به کاربران جدید پرتال ارسال می‌شود گنجانده شده "
+"است."
 
 #. module: portal
 #: model:ir.model.fields,help:portal.field_portal_wizard__welcome_message
 msgid "This text is included in the email sent to new users of the portal."
 msgstr ""
+"این متن در ایمیلی که به کاربران جدید پرتال ارسال می‌شود گنجانده شده است."
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_searchbar
 msgid "Toggle filters"
-msgstr ""
+msgstr "فیلترها را تغییر دهید"
 
 #. module: portal
 #: model:ir.model.fields,field_description:portal.field_portal_wizard_user__user_id
@@ -1226,12 +1258,12 @@ msgstr "شما باید"
 #: code:addons/portal/wizard/portal_wizard.py:0
 #, python-format
 msgid "You should first grant the portal access to the partner \"%s\"."
-msgstr ""
+msgstr "ابتدا باید دسترسی به پرتال را به همکار \"%s\" بدهید."
 
 #. module: portal
 #: model:mail.template,subject:portal.mail_template_data_portal_welcome
 msgid "Your account at {{ object.user_id.company_id.name }}"
-msgstr ""
+msgstr "حساب کاربری شما در {{ object.user_id.company_id.name }}"
 
 #. module: portal
 #: model_terms:ir.ui.view,arch_db:portal.portal_contact
@@ -1269,7 +1301,7 @@ msgstr "کامنتها"
 #: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "full access"
-msgstr ""
+msgstr "دسترسی کامل"
 
 #. module: portal
 #. openerp-web
@@ -1279,6 +1311,8 @@ msgid ""
 "it will be the only way to\n"
 "                identify the key once created"
 msgstr ""
+"این تنها راه خواهد بود\n"
+"کلید را پس از ایجاد شناسایی کنید"
 
 #. module: portal
 #. openerp-web
@@ -1303,11 +1337,6 @@ msgid "res.users.apikeys.description"
 msgstr ""
 
 #. module: portal
-#: model_terms:ir.ui.view,arch_db:portal.portal_my_details
-msgid "select..."
-msgstr "انتخاب..."
-
-#. module: portal
 #. openerp-web
 #: code:addons/portal/static/src/xml/portal_chatter.xml:0
 #, python-format
@@ -1319,4 +1348,4 @@ msgstr "برای ارسال یک کامنت"
 #: code:addons/portal/static/src/xml/portal_security.xml:0
 #, python-format
 msgid "to your user account, it is very important to store it securely."
-msgstr ""
+msgstr "به حساب کاربری شما، بسیار مهم است که آن را به طور ایمن نگهداری کنید."

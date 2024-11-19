@@ -106,6 +106,12 @@ class AccruedExpenseRevenue(models.TransientModel):
                     'columns': preview_columns,
                 },
             })
+    def _get_computed_account(self, order, product, is_purchase):
+        accounts = product.with_company(order.company_id).product_tmpl_id.get_product_accounts(fiscal_pos=order.fiscal_position_id)
+        if is_purchase:
+            return accounts['expense']
+        else:
+            return accounts['income']
 
     def _compute_move_vals(self):
         def _get_aml_vals(order, balance, amount_currency, account_id, label=""):
@@ -145,10 +151,7 @@ class AccruedExpenseRevenue(models.TransientModel):
             if len(orders) == 1 and self.amount and order.order_line:
                 total_balance = self.amount
                 order_line = order.order_line[0]
-                if is_purchase:
-                    account = order_line.product_id.property_account_expense_id or order_line.product_id.categ_id.property_account_expense_categ_id
-                else:
-                    account = order_line.product_id.property_account_income_id or order_line.product_id.categ_id.property_account_income_categ_id
+                account = self._get_computed_account(order, order_line.product_id, is_purchase)
                 values = _get_aml_vals(order, self.amount, 0, account.id, label=_('Manual entry'))
                 move_lines.append(Command.create(values))
             else:
@@ -175,13 +178,23 @@ class AccruedExpenseRevenue(models.TransientModel):
                 )
                 for order_line in lines:
                     if is_purchase:
-                        account = order_line.product_id.property_account_expense_id or order_line.product_id.categ_id.property_account_expense_categ_id
-                        amount = self.company_id.currency_id.round(order_line.qty_to_invoice * order_line.price_unit / rate)
-                        amount_currency = order_line.currency_id.round(order_line.qty_to_invoice * order_line.price_unit)
+                        account = self._get_computed_account(order, order_line.product_id, is_purchase)
+                        if any(tax.price_include for tax in order_line.taxes_id):
+                            # As included taxes are not taken into account in the price_unit, we need to compute the price_subtotal
+                            price_subtotal = order_line.taxes_id.compute_all(
+                                order_line.price_unit,
+                                currency=order_line.order_id.currency_id,
+                                quantity=order_line.qty_to_invoice,
+                                product=order_line.product_id,
+                                partner=order_line.order_id.partner_id)['total_excluded']
+                        else:
+                            price_subtotal = order_line.qty_to_invoice * order_line.price_unit
+                        amount = self.company_id.currency_id.round(price_subtotal / rate)
+                        amount_currency = order_line.currency_id.round(price_subtotal)
                         fnames = ['qty_to_invoice', 'qty_received', 'qty_invoiced', 'invoice_lines']
                         label = _('%s - %s; %s Billed, %s Received at %s each', order.name, _ellipsis(order_line.name, 20), order_line.qty_invoiced, order_line.qty_received, formatLang(self.env, order_line.price_unit, currency_obj=order.currency_id))
                     else:
-                        account = order_line.product_id.property_account_income_id or order_line.product_id.categ_id.property_account_income_categ_id
+                        account = self._get_computed_account(order, order_line.product_id, is_purchase)
                         amount = self.company_id.currency_id.round(order_line.untaxed_amount_to_invoice / rate)
                         amount_currency = order_line.untaxed_amount_to_invoice
                         fnames = ['qty_to_invoice', 'untaxed_amount_to_invoice', 'qty_invoiced', 'qty_delivered', 'invoice_lines']

@@ -134,6 +134,52 @@ class TestSaleToInvoice(TestSaleCommon):
         self.assertEqual(len(invoice.invoice_line_ids.filtered(lambda l: l.display_type == 'line_section' and l.name == "Down Payments")), 1, 'A single section for downpayments should be present')
         self.assertEqual(invoice.amount_total, self.sale_order.amount_total - sum(downpayment_line.mapped('price_unit')), 'Downpayment should be applied')
 
+    def test_downpayment_line_remains_on_SO(self):
+        """ Test downpayment's SO line is created and remains unchanged even if everything is invoiced
+        """
+        # Create the SO with one line
+        sale_order = self.env['sale.order'].with_context(tracking_disable=True).create({
+            'partner_id': self.partner_a.id,
+            'partner_invoice_id': self.partner_a.id,
+            'pricelist_id': self.company_data['default_pricelist'].id,
+        })
+        sale_order_line = self.env['sale.order.line'].with_context(tracking_disable=True).create({
+            'name': self.company_data['product_order_no'].name,
+            'product_id': self.company_data['product_order_no'].id,
+            'product_uom_qty': 5,
+            'product_uom': self.company_data['product_order_no'].uom_id.id,
+            'price_unit': self.company_data['product_order_no'].list_price,
+            'order_id': sale_order.id,
+            'tax_id': False,
+        })
+        # Confirm the SO
+        sale_order.action_confirm()
+        # Update delivered quantity of SO line
+        sale_order_line.write({'qty_delivered': 5.0})
+        context = {
+            'active_model': 'sale.order',
+            'active_ids': [sale_order.id],
+            'active_id': sale_order.id,
+            'default_journal_id': self.company_data['default_journal_sale'].id,
+        }
+        # Let's do an invoice for a down payment of 50
+        downpayment = self.env['sale.advance.payment.inv'].with_context(context).create({
+            'advance_payment_method': 'fixed',
+            'fixed_amount': 50,
+            'deposit_account_id': self.company_data['default_account_revenue'].id
+        })
+        downpayment.create_invoices()
+        # Let's do the invoice for the remaining amount
+        payment = self.env['sale.advance.payment.inv'].with_context(context).create({
+            'deposit_account_id': self.company_data['default_account_revenue'].id
+        })
+        payment.create_invoices()
+        # Confirm all invoices
+        downpayment_line = sale_order.order_line.filtered(lambda l: l.is_downpayment)
+        self.assertEqual(downpayment_line[0].price_unit, 50, 'The down payment unit price should not change on SO')
+        sale_order.invoice_ids.action_post()
+        self.assertEqual(downpayment_line[0].price_unit, 50, 'The down payment unit price should not change on SO')
+
     def test_downpayment_percentage_tax_icl(self):
         """ Test invoice with a percentage downpayment and an included tax
             Check the total amount of invoice is correct and equal to a respective sale order's total amount
@@ -163,6 +209,47 @@ class TestSaleToInvoice(TestSaleCommon):
         self.assertEqual(downpayment_aml.price_unit, self.sale_order.amount_total/2, 'downpayment should have the correct amount')
         invoice.action_post()
         self.assertEqual(downpayment_line.price_unit, self.sale_order.amount_total/2, 'downpayment should have the correct amount')
+
+    def test_downpayment_invoice_and_partial_credit_note(self):
+        """This test check that the downpayment line amount on the sale order remains consistent"""
+        self.sale_order.action_confirm()
+
+        # Create an invoice for a Down payment of 100
+        payment = self.env['sale.advance.payment.inv'].with_context(self.context).create({
+            'advance_payment_method': 'fixed',
+            'fixed_amount': 100,
+            'deposit_account_id': self.company_data['default_account_revenue'].id,
+        })
+        payment.create_invoices()
+
+        # Ensure the downpayment line on the sale order is correctly set to 100
+        downpayment_line = self.sale_order.order_line.filtered(lambda l: l.is_downpayment)
+        self.assertEqual(downpayment_line.price_unit, 100)
+
+        # post the downpayment invoice and ensure the downpayment_line amount is still 100
+        downpayment_invoice = downpayment_line.order_id.order_line.invoice_lines.move_id
+        downpayment_invoice.action_post()
+        self.assertEqual(downpayment_line.price_unit, 100)
+
+        # Create a credit note for a part of the downpayment invoice and post it
+        move_reversal = self.env['account.move.reversal'].with_context(
+            active_model="account.move",
+            active_ids=downpayment_invoice.ids,
+        ).create({
+            'date': '2020-02-01',
+            'reason': 'no reason',
+            'refund_method': 'refund',
+            'journal_id': downpayment_invoice.journal_id.id,
+        })
+        reversal_action = move_reversal.reverse_moves()
+        reverse_move = self.env['account.move'].browse(reversal_action['res_id'])
+        with Form(reverse_move) as form_reverse:
+            with form_reverse.invoice_line_ids.edit(0) as line_form:
+                line_form.price_unit = 20.0
+        reverse_move.action_post()
+
+        self.assertEqual(downpayment_line.price_unit, 80,
+                         "The downpayment line amount should be equal to the sum of the invoice and credit note amount")
 
     def test_invoice_with_discount(self):
         """ Test invoice with a discount and check discount applied on both SO lines and an invoice lines """

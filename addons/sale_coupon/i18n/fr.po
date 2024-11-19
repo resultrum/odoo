@@ -8,17 +8,17 @@
 # RHTodoo, 2021
 # Grégory Schreiner <gregory@mokatourisme.fr>, 2022
 # Cécile Collart <cco@odoo.com>, 2022
-# Walid Hanniche, 2022
-# Jolien De Paepe, 2022
+# Jolien De Paepe, 2023
+# Manon Rondou, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-05 10:54+0000\n"
+"POT-Creation-Date: 2024-08-14 15:43+0000\n"
 "PO-Revision-Date: 2021-09-14 12:26+0000\n"
-"Last-Translator: Jolien De Paepe, 2022\n"
-"Language-Team: French (https://www.transifex.com/odoo/teams/41243/fr/)\n"
+"Last-Translator: Manon Rondou, 2024\n"
+"Language-Team: French (https://app.transifex.com/odoo/teams/41243/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -295,6 +295,7 @@ msgstr "Créé le"
 
 #. module: sale_coupon
 #: code:addons/sale_coupon/models/sale_order.py:0
+#: code:addons/sale_coupon/models/sale_order.py:0
 #, python-format
 msgid "Discount: %(program)s - On product with following taxes: %(taxes)s"
 msgstr "Réduction: %(program)s - Sur les articles taxés à : %(taxes)s"
@@ -309,7 +310,7 @@ msgstr "Remise: %s"
 #. module: sale_coupon
 #: model:ir.model.fields,field_description:sale_coupon.field_sale_coupon_apply_code__display_name
 msgid "Display Name"
-msgstr "Afficher Nom"
+msgstr "Nom d'affichage"
 
 #. module: sale_coupon
 #: model:ir.actions.act_window,name:sale_coupon.sale_coupon_apply_code_action
@@ -445,7 +446,7 @@ msgstr "Ligne de bons de commande"
 #: code:addons/sale_coupon/models/coupon_program.py:0
 #, python-format
 msgid "Sales Orders"
-msgstr "Bons de commandes"
+msgstr "Commandes"
 
 #. module: sale_coupon
 #: code:addons/sale_coupon/models/coupon.py:0
@@ -555,7 +556,7 @@ msgstr ""
 #. module: sale_coupon
 #: model:mail.template,name:sale_coupon.mail_template_sale_coupon
 msgid "[Sales] Coupon: Send by Email"
-msgstr "[Vente] Coupon: Envoyé par email"
+msgstr "[Vente] Coupon: Envoyé par e-mail"
 
 #. module: sale_coupon
 #: code:addons/sale_coupon/models/sale_order.py:0

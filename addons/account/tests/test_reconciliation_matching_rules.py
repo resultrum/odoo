@@ -530,16 +530,16 @@ class TestReconciliationMatchingRules(AccountTestInvoicingCommon):
     @freeze_time('2019-01-01')
     def test_enough_payment_tolerance(self):
         rule = self._create_reconcile_model(
-            payment_tolerance_param=1.0,
+            payment_tolerance_param=2.0,
             line_ids=[{}],
         )
 
         for inv_type, bsl_sign in (('out_invoice', 1), ('in_invoice', -1)):
 
-            invl = self._create_invoice_line(1000.0, self.partner_a, inv_type, inv_date='2019-01-01')
+            invl = self._create_invoice_line(1210.0, self.partner_a, inv_type, inv_date='2019-01-01')
 
             # Enough tolerance to match the invoice line.
-            st_line = self._create_st_line(amount=bsl_sign * 990.0)
+            st_line = self._create_st_line(amount=bsl_sign * 1185.80)
             self._check_statement_matching(
                 rule,
                 {st_line.id: {'aml_ids': invl.ids, 'model': rule, 'partner': st_line.partner_id, 'status': 'write_off'}},
@@ -549,7 +549,7 @@ class TestReconciliationMatchingRules(AccountTestInvoicingCommon):
             # The payment amount is higher than the invoice one.
             # However, since the invoice amount is lower than the payment amount,
             # the tolerance is not checked and the invoice line is matched.
-            st_line = self._create_st_line(amount=bsl_sign * 1010.0)
+            st_line = self._create_st_line(amount=bsl_sign * 1234.20)
             self._check_statement_matching(
                 rule,
                 {st_line.id: {'aml_ids': invl.ids, 'model': rule, 'partner': st_line.partner_id}},
@@ -1125,6 +1125,20 @@ class TestReconciliationMatchingRules(AccountTestInvoicingCommon):
                 self.bank_line_2.id: no_match_result,
             }, self.bank_st)
 
+            # More complex matching to match something from bank sync data.
+            # Note: the indentation is done with multiple \n to mimic the bank sync behavior. Keep them for this test!
+            rule.partner_mapping_line_ids.write({'narration_regex': ".*coincoin.*"})
+            self.bank_line_1.write({'narration': """
+                {
+                    "informations": "coincoin turlututu tsoin tsoin",
+                }
+            """})
+
+            self._check_statement_matching(rule, {
+                self.bank_line_1.id: match_result,
+                self.bank_line_2.id: no_match_result,
+            }, self.bank_st)
+
     def test_partner_name_in_communication(self):
         self.invoice_line_1.partner_id.write({'name': "Archibald Haddock"})
         self.bank_line_1.write({'partner_id': None, 'payment_ref': '1234//HADDOCK-Archibald'})
@@ -1395,3 +1409,67 @@ class TestReconciliationMatchingRules(AccountTestInvoicingCommon):
             self.bank_line_1.id: {'aml_ids': []},
             self.bank_line_2.id: {'aml_ids': [self.invoice_line_3.id], 'model': self.rule_1, 'partner': self.bank_line_2.partner_id},
         }, statements=self.bank_st)
+
+    def test_matching_multi_currency_auto_validate(self):
+        currency = self.setup_multi_currency_data(
+            default_values={
+                'name': 'Black Chocolate Coin',
+                'symbol': '🍫',
+                'currency_unit_label': 'Black Choco',
+                'currency_subunit_label': 'Black Cacao Powder',
+            },
+            rate2016=11.2674,
+            rate2017=11.2674,
+        )['currency']
+
+        bank_journal = self.company_data['default_journal_bank'].copy()
+        bank_journal.currency_id = currency
+
+        invoice_line = self._create_invoice_line(100.0, self.partner_1, 'out_invoice', currency=currency)
+
+        statement = self.env['account.bank.statement'].create({
+            'name': 'test_matching_multi_currency_auto_validate',
+            'journal_id': bank_journal.id,
+            'line_ids': [
+                (0, 0, {
+                    'journal_id': bank_journal.id,
+                    'partner_id': self.partner_1.id,
+                    'date': invoice_line.date,
+                    'payment_ref': invoice_line.move_name,
+                    'amount': invoice_line.amount_currency,
+                }),
+            ],
+        })
+        statement_line = statement.line_ids
+        statement.button_post()
+
+        matching_rule = self.env['account.reconcile.model'].create({
+            'name': 'test_matching_multi_currency_auto_validate',
+            'rule_type': 'invoice_matching',
+            'match_partner': True,
+            'match_partner_ids': [(6, 0, self.partner_1.ids)],
+            'allow_payment_tolerance': True,
+            'payment_tolerance_type': 'percentage',
+            'match_same_currency': True,
+            'past_months_limit': False,
+            'auto_reconcile': True,
+        })
+
+        self._check_statement_matching(
+            matching_rule,
+            {
+                statement_line.id: {
+                    'aml_ids': invoice_line.ids,
+                    'model': matching_rule,
+                    'status': 'reconciled',
+                    'partner': self.partner_1,
+                },
+            },
+            statements=statement,
+        )
+
+        self.assertRecordValues(statement_line.line_ids, [
+            # pylint: disable=bad-whitespace
+            {'amount_currency': 100.0,  'debit': 8.88,  'credit': 0.0},
+            {'amount_currency': -100.0, 'debit': 0.0,   'credit': 8.88},
+        ])

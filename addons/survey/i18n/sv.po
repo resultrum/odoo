@@ -18,19 +18,20 @@
 # Victor Ekström, 2022
 # Simon S, 2022
 # Robin Calvin, 2022
-# MikaelAtVertel, 2022
+# Mikael Carlsson <mikael.carlsson@vertel.se>, 2022
 # Jakob Krabbe <jakob.krabbe@vertel.se>, 2022
-# Anders Wallenquist <anders.wallenquist@vertel.se>, 2022
 # Mikael Åkerberg <mikael.akerberg@mariaakerberg.com>, 2023
+# Lasse L, 2023
+# Anders Wallenquist <anders.wallenquist@vertel.se>, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 15.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-11-16 13:18+0000\n"
+"POT-Creation-Date: 2024-08-14 15:42+0000\n"
 "PO-Revision-Date: 2021-09-14 12:26+0000\n"
-"Last-Translator: Mikael Åkerberg <mikael.akerberg@mariaakerberg.com>, 2023\n"
-"Language-Team: Swedish (https://www.transifex.com/odoo/teams/41243/sv/)\n"
+"Last-Translator: Anders Wallenquist <anders.wallenquist@vertel.se>, 2024\n"
+"Language-Team: Swedish (https://app.transifex.com/odoo/teams/41243/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -524,7 +525,7 @@ msgstr "<p>Testa dina kunskaper om dina produkter!</p>"
 #. module: survey
 #: model:survey.survey,description:survey.vendor_certification
 msgid "<p>Test your vendor skills!</p>"
-msgstr "<p>Testa dina färdigheter som försäljare!</p>"
+msgstr "<p>Testa dina kompetenser som försäljare!</p>"
 
 #. module: survey
 #: model:survey.question,description:survey.survey_feedback_p1
@@ -1255,7 +1256,7 @@ msgstr "Examina"
 #: model:ir.model.fields,field_description:survey.field_res_partner__certifications_count
 #: model:ir.model.fields,field_description:survey.field_res_users__certifications_count
 msgid "Certifications Count"
-msgstr "Certifieringar räknas"
+msgstr "Antal Certifieringar"
 
 #. module: survey
 #: model:ir.actions.act_window,name:survey.res_partner_action_certifications
@@ -1363,7 +1364,7 @@ msgstr "Kommentar Meddelande"
 #: model:ir.model.fields,field_description:survey.field_res_partner__certifications_company_count
 #: model:ir.model.fields,field_description:survey.field_res_users__certifications_company_count
 msgid "Company Certifications Count"
-msgstr "Företagets certifieringar räknas"
+msgstr "Företagets antal certifieringar"
 
 #. module: survey
 #: model:ir.model.fields.selection,name:survey.selection__survey_user_input__state__done
@@ -3211,6 +3212,11 @@ msgid "Progression Mode"
 msgstr "Framstegsläge"
 
 #. module: survey
+#: model_terms:ir.ui.view,arch_db:survey.survey_invite_view_form
+msgid "Public share URL"
+msgstr ""
+
+#. module: survey
 #: model:ir.model.fields,field_description:survey.field_survey_question_answer__question_id
 #: model:ir.model.fields,field_description:survey.field_survey_user_input_line__question_id
 #: model_terms:ir.ui.view,arch_db:survey.survey_question_answer_view_search
@@ -4444,6 +4450,11 @@ msgid "Upcoming Activities"
 msgstr "Kommande aktiviteter"
 
 #. module: survey
+#: model_terms:ir.ui.view,arch_db:survey.survey_invite_view_form
+msgid "Use template"
+msgstr "Använd mall"
+
+#. module: survey
 #: model:ir.model.fields,help:survey.field_survey_question__description
 msgid ""
 "Use this field to add additional explanations about your question or to "
@@ -4783,6 +4794,16 @@ msgid ""
 msgstr ""
 "Du kan bara skapa certifieringar för enkäter som har en "
 "poängsättningsmekanism."
+
+#. module: survey
+#: code:addons/survey/models/survey_question.py:0
+#, python-format
+msgid ""
+"You cannot delete questions from surveys \"%(survey_names)s\" while live "
+"sessions are in progress."
+msgstr ""
+"Du kan inte ta bort frågor från enkäter \"%(survey_names)s\" medan live-"
+"sessioner pågår."
 
 #. module: survey
 #: code:addons/survey/models/survey_survey.py:0

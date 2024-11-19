@@ -15,7 +15,7 @@ msgstr ""
 "POT-Creation-Date: 2022-03-30 11:00+0000\n"
 "PO-Revision-Date: 2022-05-17 12:42+0000\n"
 "Last-Translator: Cozmin Candea <office@terrabit.ro>, 2023\n"
-"Language-Team: Romanian (https://www.transifex.com/odoo/teams/41243/ro/)\n"
+"Language-Team: Romanian (https://app.transifex.com/odoo/teams/41243/ro/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -164,6 +164,15 @@ msgstr "Token de reîmprospătare Outlook"
 #, python-format
 msgid "Please configure your Outlook credentials."
 msgstr "Vă rugăm să configurați credențialele dvs. Outlook."
+
+#. module: microsoft_outlook
+#: code:addons/microsoft_outlook/models/ir_mail_server.py:0
+#, python-format
+msgid ""
+"Please fill the \"Username\" field with your Outlook/Office365 username "
+"(your email address). This should be the same account as the one used for "
+"the Outlook OAuthentication Token."
+msgstr ""
 
 #. module: microsoft_outlook
 #: code:addons/microsoft_outlook/models/ir_mail_server.py:0

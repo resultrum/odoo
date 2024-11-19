@@ -84,7 +84,7 @@ const baseNotificationMethods = {
                     'An offer has been received for a non-existent peer connection - client: ' +
                         notification.fromClientId,
                 );
-                console.trace(pc.connectionState);
+                console.trace(pc && pc.connectionState);
                 console.groupEnd();
             }
             return;
@@ -125,17 +125,26 @@ const baseNotificationMethods = {
         }
         if (debugShowLog) console.log(`%cisOfferRacing: ${isOfferRacing}`, 'background: red;');
 
-        if (isOfferRacing) {
-            if (debugShowLog)
-                console.log(`%c SETREMOTEDESCRIPTION 1`, 'background: navy; color:white;');
-            await Promise.all([
-                pc.setLocalDescription({ type: 'rollback' }),
-                pc.setRemoteDescription(description),
-            ]);
-        } else {
-            if (debugShowLog)
-                console.log(`%c SETREMOTEDESCRIPTION 2`, 'background: navy; color:white;');
-            await pc.setRemoteDescription(description);
+        try {
+            if (isOfferRacing) {
+                if (debugShowLog)
+                    console.log(`%c SETREMOTEDESCRIPTION 1`, 'background: navy; color:white;');
+                await Promise.all([
+                    pc.setLocalDescription({ type: 'rollback' }),
+                    pc.setRemoteDescription(description),
+                ]);
+            } else {
+                if (debugShowLog)
+                    console.log(`%c SETREMOTEDESCRIPTION 2`, 'background: navy; color:white;');
+                await pc.setRemoteDescription(description);
+            }
+        } catch (e) {
+            if (e instanceof DOMException && e.name === 'InvalidStateError') {
+                console.error(e);
+                return;
+            } else {
+                throw e;
+            }
         }
         if (clientInfos.iceCandidateBuffer.length) {
             for (const candidate of clientInfos.iceCandidateBuffer) {
@@ -145,7 +154,16 @@ const baseNotificationMethods = {
         }
         if (description.type === 'offer') {
             const answerDescription = await pc.createAnswer();
-            await pc.setLocalDescription(answerDescription);
+            try {
+                await pc.setLocalDescription(answerDescription);
+            } catch (e) {
+                if (e instanceof DOMException && e.name === 'InvalidStateError') {
+                    console.error(e);
+                    return;
+                } else {
+                    throw e;
+                }
+            }
             this.notifyClient(
                 notification.fromClientId,
                 'rtc_signal_description',
@@ -181,8 +199,8 @@ export class PeerToPeer {
         return Object.entries(this.clientsInfos)
             .filter(
                 ([id, infos]) =>
-                    infos.peerConnection.iceConnectionState === 'connected' &&
-                    infos.dataChannel.readyState === 'open',
+                    infos.peerConnection && infos.peerConnection.iceConnectionState === 'connected' &&
+                    infos.dataChannel && infos.dataChannel.readyState === 'open',
             )
             .map(([id]) => id);
     }
@@ -194,8 +212,8 @@ export class PeerToPeer {
         if (!clientInfos) return;
         clearTimeout(clientInfos.fallbackTimeout);
         clearTimeout(clientInfos.zombieTimeout);
-        clientInfos.dataChannel.close();
-        clientInfos.peerConnection.close();
+        clientInfos.dataChannel && clientInfos.dataChannel.close();
+        clientInfos.peerConnection && clientInfos.peerConnection.close();
         delete this.clientsInfos[clientId];
     }
 
@@ -381,6 +399,10 @@ export class PeerToPeer {
             iceCandidateBuffer: [],
             backoffFactor: 0,
         };
+
+        if (!navigator.onLine) {
+            return this.clientsInfos[clientId];
+        }
         const pc = new RTCPeerConnection(this.options.peerConnectionConfig);
 
         if (makeOffer) {
@@ -425,10 +447,12 @@ export class PeerToPeer {
                     this.removeClient(clientId);
                     break;
                 case 'disconnected':
-                    await this._recoverConnection(clientId, {
-                        delay: 3000,
-                        reason: 'ice connection disconnected',
-                    });
+                    if (navigator.onLine) {
+                        await this._recoverConnection(clientId, {
+                            delay: 3000,
+                            reason: 'ice connection disconnected',
+                        });
+                    }
                     break;
                 case 'connected':
                     this.clientsInfos[clientId].backoffFactor = 0;
@@ -445,10 +469,12 @@ export class PeerToPeer {
                     this.removeClient(clientId);
                     break;
                 case 'disconnected':
-                    await this._recoverConnection(clientId, {
-                        delay: 3000,
-                        reason: 'connection disconnected',
-                    });
+                    if (navigator.onLine) {
+                        await this._recoverConnection(clientId, {
+                            delay: 3000,
+                            reason: 'connection disconnected',
+                        });
+                    }
                     break;
                 case 'connected':
                 case 'completed':
@@ -618,7 +644,7 @@ export class PeerToPeer {
 
         // If there is no connection after 10 seconds, terminate.
         clientInfos.zombieTimeout = setTimeout(() => {
-            if (clientInfos && clientInfos.dataChannel.readyState !== 'open') {
+            if (clientInfos && clientInfos.dataChannel && clientInfos.dataChannel.readyState !== 'open') {
                 if (debugShowLog) console.log(`%c KILL ZOMBIE ${clientId}`, 'background: red;');
                 this.removeClient(clientId);
             } else {

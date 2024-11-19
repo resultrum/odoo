@@ -18,6 +18,7 @@ from odoo import api, models
 from odoo import registry, SUPERUSER_ID
 from odoo.exceptions import AccessError
 from odoo.http import request
+from odoo.tools.misc import clean_context
 from odoo.tools.safe_eval import safe_eval
 from odoo.osv.expression import FALSE_DOMAIN
 from odoo.addons.http_routing.models import ir_http
@@ -38,7 +39,7 @@ def sitemap_qs2dom(qs, route, field='name'):
         if len(needles) == 1:
             dom = [(field, 'ilike', needles[0])]
         else:
-            dom = FALSE_DOMAIN
+            dom = list(FALSE_DOMAIN)
     return dom
 
 
@@ -220,7 +221,7 @@ class Http(models.AbstractModel):
             except pytz.UnknownTimeZoneError:
                 context.pop('tz')
 
-        request.website = request.env['website'].get_current_website()  # can use `request.env` since auth methods are called
+        request.website = request.env(context=clean_context(request.context))['website'].get_current_website()  # can use `request.env` since auth methods are called
         context['website_id'] = request.website.id
         # This is mainly to avoid access errors in website controllers where there is no
         # context (eg: /shop), and it's not going to propagate to the global context of the tab
@@ -241,7 +242,7 @@ class Http(models.AbstractModel):
         super(Http, cls)._add_dispatch_parameters(func)
 
         if request.routing_iteration == 1:
-            request.website = request.website.with_context(request.context)
+            request.website = request.website.with_context(clean_context(request.context))
 
     @classmethod
     def _get_frontend_langs(cls):
@@ -423,7 +424,7 @@ class Http(models.AbstractModel):
             obj = self._xmlid_to_obj(self.env, xmlid)
         elif id and model in self.env:
             obj = self.env[model].browse(int(id))
-        if obj and 'website_published' in obj._fields:
+        if obj and 'website_published' in obj._fields and field in obj._fields and not obj._fields[field].groups:
             if self.env[obj._name].sudo().search([('id', '=', obj.id), ('website_published', '=', True)]):
                 self = self.sudo()
         return super(Http, self).binary_content(
@@ -451,6 +452,7 @@ class Http(models.AbstractModel):
         session_info = super(Http, self).get_frontend_session_info()
         session_info.update({
             'is_website_user': request.env.user.id == request.website.user_id.id,
+            'lang_url_code': request.lang._get_cached('url_code'),
             'geoip_country_code': request.session.get('geoip', {}).get('country_code'),
         })
         if request.env.user.has_group('website.group_website_publisher'):

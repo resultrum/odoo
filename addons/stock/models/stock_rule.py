@@ -204,6 +204,7 @@ class StockRule(models.Model):
             'origin': move_to_copy.origin or move_to_copy.picking_id.name or "/",
             'location_id': move_to_copy.location_dest_id.id,
             'location_dest_id': self.location_id.id,
+            'rule_id': self.id,
             'date': new_date,
             'company_id': company_id,
             'picking_id': False,
@@ -501,7 +502,7 @@ class ProcurementGroup(models.Model):
         """ Find a pull rule for the location_id, fallback on the parent
         locations if it could not be found.
         """
-        result = False
+        result = self.env['stock.rule']
         location = location_id
         while (not result) and location:
             domain = self._get_rule_domain(location, values)

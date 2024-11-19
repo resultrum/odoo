@@ -3,6 +3,7 @@ odoo.define('website.snippet.editor', function (require) {
 
 const {qweb, _t, _lt} = require('web.core');
 const Dialog = require('web.Dialog');
+const publicWidget = require('web.public.widget');
 const weSnippetEditor = require('web_editor.snippet.editor');
 const wSnippetOptions = require('website.editor.snippets.options');
 const OdooEditorLib = require('@web_editor/../lib/odoo-editor/src/utils/utils');
@@ -168,7 +169,7 @@ weSnippetEditor.SnippetsMenu.include({
      */
     async _validateGMapAPIKey(key) {
         try {
-            const response = await fetch(`https://maps.googleapis.com/maps/api/staticmap?center=belgium&size=10x10&key=${key}`);
+            const response = await fetch(`https://maps.googleapis.com/maps/api/staticmap?center=belgium&size=10x10&key=${encodeURIComponent(key)}`);
             const isValid = (response.status === 200);
             return {
                 isValid: isValid,
@@ -236,6 +237,9 @@ weSnippetEditor.SnippetsMenu.include({
      */
     _addToolbar() {
         this._super(...arguments);
+        if (this.options.enableTranslation) {
+            this._$toolbarContainer[0].querySelector(":scope .o_we_animate_text").classList.add("d-none");
+        }
         this.$('#o_we_editor_toolbar_container > we-title > span').after($(`
             <div class="btn fa fa-fw fa-2x o_we_highlight_animated_text d-none
                 ${$('body').hasClass('o_animated_text_highlighted') ? 'fa-eye text-success' : 'fa-eye-slash'}"
@@ -276,6 +280,18 @@ weSnippetEditor.SnippetsMenu.include({
      */
     _isValidSelection(sel) {
         return sel.rangeCount && [...this.getEditableArea()].some(el => el.contains(sel.anchorNode));
+    },
+
+    /**
+     * The goal here is to disable parents editors for `s_popup` snippets
+     * since they should not display their parents options.
+     * TODO: Update in master to set the `o_no_parent_editor` class in the
+     * snippet's XML.
+     *
+     * @override
+     */
+    _allowParentsEditors($snippet) {
+        return this._super(...arguments) && !$snippet[0].classList.contains("s_popup");
     },
 
     //--------------------------------------------------------------------------
@@ -427,6 +443,68 @@ weSnippetEditor.SnippetEditor.include({
             return _t("Logo");
         }
         return this._super(...arguments);
+    },
+});
+
+// Edit mode customizations of public widgets.
+
+publicWidget.registry.hoverableDropdown.include({
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+    
+    /**
+     * Hides all opened dropdowns.
+     *
+     * TODO: Remove in master.
+     * @private
+     */
+    _hideDropdowns() {
+        for (const toggleEl of this.el.querySelectorAll('.dropdown.show .dropdown-toggle')) {
+            $(toggleEl).dropdown('hide');
+        }
+    },
+
+    //--------------------------------------------------------------------------
+    // Handlers
+    //--------------------------------------------------------------------------
+
+    /**
+     * Called when the page is clicked anywhere.
+     * Closes the shown dropdown if the click is outside of it.
+     *
+     * TODO: Remove in master.
+     * @private
+     * @param {Event} ev
+     */
+    _onPageClick(ev) {
+        if (ev.target.closest('.dropdown.show')) {
+            return;
+        }
+        this._hideDropdowns();
+    },
+    /**
+     * @override
+     */
+    _onMouseEnter(ev) {
+        if (this.editableMode) {
+            // Do not handle hover if another dropdown is opened.
+            if (this.el.querySelector('.dropdown.show')) {
+                return;
+            }
+        }
+        this._super(...arguments);
+    },
+    /**
+     * @override
+     */
+    _onMouseLeave(ev) {
+        if (this.editableMode) {
+            // Cancel handling from view mode.
+            return;
+        }
+        this._super(...arguments);
     },
 });
 });

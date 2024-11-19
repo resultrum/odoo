@@ -12,11 +12,11 @@ from pytz import timezone, utc
 
 from odoo import api, fields, models, _
 from odoo.addons.base.models.res_partner import _tz_get
-from odoo.exceptions import ValidationError, UserError
+from odoo.exceptions import ValidationError
 from odoo.osv import expression
 from odoo.tools.float_utils import float_round
 
-from odoo.tools import date_utils, float_utils
+from odoo.tools import date_utils
 from .resource_mixin import timezone_datetime
 
 # Default hour per day value. The one should
@@ -162,7 +162,7 @@ class ResourceCalendar(models.Model):
             company_id = res.get('company_id', self.env.company.id)
             company = self.env['res.company'].browse(company_id)
             company_attendance_ids = company.resource_calendar_id.attendance_ids
-            if company_attendance_ids:
+            if not company.resource_calendar_id.two_weeks_calendar and company_attendance_ids:
                 res['attendance_ids'] = [
                     (0, 0, {
                         'name': attendance.name,
@@ -216,7 +216,7 @@ class ResourceCalendar(models.Model):
 
     @api.depends('company_id')
     def _compute_attendance_ids(self):
-        for calendar in self.filtered(lambda c: not c._origin or c._origin.company_id != c.company_id):
+        for calendar in self.filtered(lambda c: not c._origin or c._origin.company_id != c.company_id and c.company_id):
             company_calendar = calendar.company_id.resource_calendar_id
             calendar.write({
                 'two_weeks_calendar': company_calendar.two_weeks_calendar,
@@ -293,9 +293,6 @@ class ResourceCalendar(models.Model):
         self.hours_per_day = self._compute_hours_per_day(attendances)
 
     def switch_calendar_type(self):
-        if self == self.env.company.resource_calendar_id:
-            raise UserError(_('Impossible to switch calendar type for the default company schedule.'))
-
         if not self.two_weeks_calendar:
             self.attendance_ids.unlink()
             self.attendance_ids = [
@@ -321,7 +318,7 @@ class ResourceCalendar(models.Model):
             ]
 
             self.two_weeks_calendar = True
-            default_attendance = self.default_get('attendance_ids')['attendance_ids']
+            default_attendance = self.default_get(['attendance_ids'])['attendance_ids']
             for idx, att in enumerate(default_attendance):
                 att[2]["week_type"] = '0'
                 att[2]["sequence"] = idx + 1
@@ -333,7 +330,7 @@ class ResourceCalendar(models.Model):
         else:
             self.two_weeks_calendar = False
             self.attendance_ids.unlink()
-            self.attendance_ids = self.default_get('attendance_ids')['attendance_ids']
+            self.attendance_ids = self.default_get(['attendance_ids'])['attendance_ids']
         self._onchange_hours_per_day()
 
     @api.onchange('attendance_ids')
@@ -385,14 +382,16 @@ class ResourceCalendar(models.Model):
         """ Return the attendance intervals in the given datetime range.
             The returned intervals are expressed in specified tz or in the resource's timezone.
         """
-        self.ensure_one()
-        resources = self.env['resource.resource'] if not resources else resources
         assert start_dt.tzinfo and end_dt.tzinfo
         self.ensure_one()
         combine = datetime.combine
         required_tz = tz
 
-        resources_list = list(resources) + [self.env['resource.resource']]
+        if not resources:
+            resources = self.env['resource.resource']
+            resources_list = [resources]
+        else:
+            resources_list = list(resources) + [self.env['resource.resource']]
         resource_ids = [r.id for r in resources_list]
         domain = domain if domain is not None else []
         domain = expression.AND([domain, [
@@ -472,15 +471,18 @@ class ResourceCalendar(models.Model):
         """ Return the leave intervals in the given datetime range.
             The returned intervals are expressed in specified tz or in the calendar's timezone.
         """
-        resources = self.env['resource.resource'] if not resources else resources
         assert start_dt.tzinfo and end_dt.tzinfo
         self.ensure_one()
 
-        # for the computation, express all datetimes in UTC
-        resources_list = list(resources) + [self.env['resource.resource']]
+        if not resources:
+            resources = self.env['resource.resource']
+            resources_list = [resources]
+        else:
+            resources_list = list(resources) + [self.env['resource.resource']]
         resource_ids = [r.id for r in resources_list]
         if domain is None:
             domain = [('time_type', '=', 'leave')]
+        # for the computation, express all datetimes in UTC
         domain = domain + [
             ('calendar_id', 'in', [False, self.id]),
             ('resource_id', 'in', resource_ids),
@@ -518,7 +520,7 @@ class ResourceCalendar(models.Model):
             resources = self.env['resource.resource']
             resources_list = [resources]
         else:
-            resources_list = list(resources)
+            resources_list = list(resources) + [self.env['resource.resource']]
 
         attendance_intervals = self._attendance_intervals_batch(start_dt, end_dt, resources, tz=tz)
         leave_intervals = self._leave_intervals_batch(start_dt, end_dt, resources, domain, tz=tz)
@@ -568,11 +570,11 @@ class ResourceCalendar(models.Model):
         for start, stop, meta in intervals:
             day_hours[start.date()] += (stop - start).total_seconds() / 3600
 
-        # compute number of days as quarters
-        days = sum(
-            float_utils.round(ROUNDING_FACTOR * day_hours[day] / day_total[day]) / ROUNDING_FACTOR if day_total[day] else 0
+        # compute number of days the hours span over
+        days = float_round(sum(
+            day_hours[day] / day_total[day] if day_total[day] else 0
             for day in day_hours
-        )
+        ), precision_rounding=0.001)
         return {
             'days': days,
             'hours': sum(day_hours.values()),
@@ -583,8 +585,11 @@ class ResourceCalendar(models.Model):
         @return dict with hours of attendance in each day between `from_datetime` and `to_datetime`
         """
         self.ensure_one()
-        resources = self.env['resource.resource'] if not resources else resources
-        resources_list = list(resources) + [self.env['resource.resource']]
+        if not resources:
+            resources = self.env['resource.resource']
+            resources_list = [resources]
+        else:
+            resources_list = list(resources) + [self.env['resource.resource']]
         # total hours per day:  retrieve attendances with one extra day margin,
         # in order to compute the total hours on the first and last days
         from_full = from_datetime - timedelta(days=1)
@@ -1025,7 +1030,12 @@ class ResourceCalendarLeaves(models.Model):
     company_id = fields.Many2one(
         'res.company', string="Company", readonly=True, store=True,
         default=lambda self: self.env.company, compute='_compute_company_id')
-    calendar_id = fields.Many2one('resource.calendar', 'Working Hours', domain="[('company_id', 'in', [company_id, False])]", check_company=True, index=True)
+    calendar_id = fields.Many2one(
+        'resource.calendar', 'Working Hours',
+        compute='_compute_calendar_id', store=True, readonly=False,
+        domain="[('company_id', 'in', [company_id, False])]",
+        check_company=True, index=True,
+    )
     date_from = fields.Datetime('Start Date', required=True)
     date_to = fields.Datetime('End Date', required=True)
     resource_id = fields.Many2one(
@@ -1046,8 +1056,12 @@ class ResourceCalendarLeaves(models.Model):
 
     @api.onchange('resource_id')
     def onchange_resource(self):
-        if self.resource_id:
-            self.calendar_id = self.resource_id.calendar_id
+        pass
+
+    @api.depends('resource_id.calendar_id')
+    def _compute_calendar_id(self):
+        for leave in self.filtered('resource_id'):
+            leave.calendar_id = leave.resource_id.calendar_id
 
     def _copy_leave_vals(self):
         self.ensure_one()

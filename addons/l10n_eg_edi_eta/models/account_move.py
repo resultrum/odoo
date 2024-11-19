@@ -5,6 +5,7 @@ import json
 
 from odoo import api, models, fields, _
 from odoo.exceptions import ValidationError, UserError
+from odoo.tools import float_is_zero
 from odoo.tools.sql import column_exists, create_column
 from datetime import datetime
 
@@ -43,8 +44,8 @@ class AccountMove(models.Model):
         for move in self:
             if move.invoice_date and move.l10n_eg_uuid and move.l10n_eg_long_id:
                 is_prod = move.company_id.l10n_eg_production_env
-                base_url = self.env['account.edi.format']._l10n_eg_get_eta_api_domain(production_enviroment=is_prod)
-                qr_code_str = '%s/documents/search/%s/share/%s' % (base_url, move.l10n_eg_uuid, move.l10n_eg_long_id)
+                base_url = self.env['account.edi.format']._l10n_eg_get_eta_qr_domain(production_enviroment=is_prod)
+                qr_code_str = '%s/documents/%s/share/%s' % (base_url, move.l10n_eg_uuid, move.l10n_eg_long_id)
                 move.l10n_eg_qr_code = qr_code_str
             else:
                 move.l10n_eg_qr_code = ''
@@ -121,4 +122,8 @@ class AccountMove(models.Model):
         self.ensure_one()
         from_currency = self.currency_id
         to_currency = self.company_id.currency_id
-        return abs(self.invoice_line_ids[0].balance / self.invoice_line_ids[0].amount_currency) if from_currency != to_currency and self.invoice_line_ids else 1.0
+        if from_currency != to_currency and self.invoice_line_ids:
+            amount_currency = self.invoice_line_ids[0].amount_currency
+            if not float_is_zero(amount_currency, precision_rounding=from_currency.rounding):
+                return abs(self.invoice_line_ids[0].balance / amount_currency)
+        return 1.0
