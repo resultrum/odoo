@@ -1022,6 +1022,7 @@ class OpenERPSession(werkzeug.contrib.sessions.Session):
         if uid is None:
             wsgienv = request.httprequest.environ
             env = dict(
+                interactive=True,
                 base_location=request.httprequest.url_root.rstrip('/'),
                 HTTP_HOST=wsgienv['HTTP_HOST'],
                 REMOTE_ADDR=wsgienv['REMOTE_ADDR'],
