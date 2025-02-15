@@ -525,7 +525,8 @@ class ProductProduct(models.Model):
         for product in self.sudo():
             variant = product.product_template_attribute_value_ids._get_combination_name()
 
-            name = variant and "%s (%s)" % (product.name, variant) or product.name
+            name = product._get_product_name()
+            name = variant and "%s (%s)" % (name, variant) or name
             sellers = self.env['product.supplierinfo'].sudo().browse(self.env.context.get('seller_id')) or []
             if not sellers and partner_ids:
                 product_supplier_info = supplier_info_by_template.get(product.product_tmpl_id, [])
@@ -614,6 +615,10 @@ class ProductProduct(models.Model):
                 category=self.env['product.category'].browse(self.env.context['categ_id']).name,
             )
         return super().view_header_get(view_id, view_type)
+
+    def _get_product_name(self):
+        self.ensure_one()
+        return self.name
 
     def action_open_label_layout(self):
         action = self.env['ir.actions.act_window']._for_xml_id('product.action_open_label_layout')
