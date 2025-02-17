@@ -1128,7 +1128,7 @@ class WebsiteSale(http.Controller):
         # IF ORDER LINKED TO A PARTNER
         else:
             if partner_id > 0:
-                if partner_id == order.partner_id.id:
+                if self.is_mode_billing(order, partner_id):
                     mode = ('edit', 'billing')
                     can_edit_vat = order.partner_id.can_edit_vat()
                 else:
@@ -1200,6 +1200,10 @@ class WebsiteSale(http.Controller):
         }
         render_values.update(self._get_country_related_render_values(kw, render_values))
         return request.render("website_sale.address", render_values)
+
+    def is_mode_billing(self, order, partner_id):
+        return partner_id == order.partner_id.id
+
 
     @http.route(
         _express_checkout_route, type='json', methods=['POST'], auth="public", website=True,
