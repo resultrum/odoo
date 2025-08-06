@@ -16,6 +16,10 @@ class HrAttendance(http.Controller):
         return company
 
     @staticmethod
+    def _get_extra_domain():
+        return []
+
+    @staticmethod
     def _get_user_attendance_data(employee):
         response = {}
         if employee:
@@ -151,7 +155,11 @@ class HrAttendance(http.Controller):
     def scan_barcode(self, token, barcode):
         company = self._get_company(token)
         if company:
-            employee = request.env['hr.employee'].sudo().search([('barcode', '=', barcode), ('company_id', '=', company.id)], limit=1)
+            domain = expression.AND([
+                [('barcode', '=', barcode), ('company_id', '=', company.id)],
+                self._get_extra_domain()
+            ])
+            employee = request.env['hr.employee'].sudo().search(domain, limit=1)
             if employee:
                 employee._attendance_action_change(self._get_geoip_response('kiosk'))
                 return self._get_employee_info_response(employee)
@@ -186,6 +194,10 @@ class HrAttendance(http.Controller):
 
     @http.route('/hr_attendance/employees_infos', type="json", auth="public")
     def employees_infos(self, token, limit, offset, domain, **kwargs):
+        domain = expression.AND([
+            domain,
+            self._get_extra_domain()
+        ])
         allowed_company_ids = self._get_allowed_company_ids(
             kwargs.get("allowed_company_ids", [])
         )
