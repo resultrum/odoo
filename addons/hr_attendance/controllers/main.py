@@ -16,10 +16,6 @@ class HrAttendance(http.Controller):
         return company
 
     @staticmethod
-    def _get_extra_domain():
-        return []
-
-    @staticmethod
     def _get_user_attendance_data(employee):
         response = {}
         if employee:
@@ -65,6 +61,17 @@ class HrAttendance(http.Controller):
             'browser': request.httprequest.user_agent.browser,
             'mode': mode
         }
+
+    def _get_extra_domain(self, domain=None, company_ids=''):
+        if domain is None:
+            domain = []
+        if company_ids:
+            allowed_company_ids = self._get_allowed_company_ids(company_ids)
+            domain = expression.AND([
+                domain,
+                [("company_id", "in", allowed_company_ids)]
+            ])
+        return domain
 
     def _get_allowed_company_ids(self, str_company_ids):
         return (
@@ -140,7 +147,7 @@ class HrAttendance(http.Controller):
         company = self._get_company(token)
         if company:
             allowed_company_ids = self._get_allowed_company_ids(
-                kwargs.get('allowed_company_ids', [])
+                kwargs.get('allowed_company_ids', str(company.id))
             )
             employee = request.env['hr.employee'].sudo().browse(employee_id)
             employee_company = employee.company_id
@@ -152,12 +159,16 @@ class HrAttendance(http.Controller):
         return {}
 
     @http.route('/hr_attendance/attendance_barcode_scanned', type="json", auth="public")
-    def scan_barcode(self, token, barcode):
+    def scan_barcode(self, token, barcode, **kwargs):
         company = self._get_company(token)
         if company:
+            allowed_company_ids = kwargs.get(
+                'allowed_company_ids',
+                str(company.id),
+            )
             domain = expression.AND([
-                [('barcode', '=', barcode), ('company_id', '=', company.id)],
-                self._get_extra_domain()
+                [('barcode', '=', barcode)],
+                self._get_extra_domain(company_ids=allowed_company_ids)
             ])
             employee = request.env['hr.employee'].sudo().search(domain, limit=1)
             if employee:
@@ -194,31 +205,36 @@ class HrAttendance(http.Controller):
 
     @http.route('/hr_attendance/employees_infos', type="json", auth="public")
     def employees_infos(self, token, limit, offset, domain, **kwargs):
-        domain = expression.AND([
-            domain,
-            self._get_extra_domain()
-        ])
-        allowed_company_ids = self._get_allowed_company_ids(
-            kwargs.get("allowed_company_ids", [])
-        )
-        Employee = request.env["hr.employee"].sudo()
+        result = []
         company = self._get_company(token)
-        if allowed_company_ids:
+        if company:
+            allowed_company_ids = kwargs.get(
+                'allowed_company_ids',
+                str(company.id),
+            )
             domain = expression.AND([
                 domain,
-                [("company_id", "in", allowed_company_ids)]
+                self._get_extra_domain(company_ids=allowed_company_ids)
             ])
-        elif company:
-            domain = expression.AND([domain, [('company_id', '=', company.id)]])
-        employees = Employee.search_fetch(domain, ['id', 'display_name', 'job_id'],
-                limit=limit, offset=offset, order="name, id")
-        employees_data = [{
-            'id': employee.id,
-            'display_name': employee.display_name,
-            'job_id': employee.job_id.name,
-            'avatar': image_data_uri(employee.avatar_128)
-        } for employee in employees]
-        return {'records': employees_data, 'length': request.env['hr.employee'].sudo().search_count(domain)}
+            Employee = request.env["hr.employee"].sudo()
+            employees = Employee.search_fetch(
+                domain,
+                ['id', 'display_name', 'job_id'],
+                limit=limit,
+                offset=offset,
+                order="name, id"
+            )
+            employees_data = [{
+                'id': employee.id,
+                'display_name': employee.display_name,
+                'job_id': employee.job_id.name,
+                'avatar': image_data_uri(employee.avatar_128)
+            } for employee in employees]
+            result = {
+                'records': employees_data,
+                'length': Employee.search_count(domain)
+            }
+        return result
 
     @http.route('/hr_attendance/systray_check_in_out', type="json", auth="user")
     def systray_attendance(self, latitude=False, longitude=False):

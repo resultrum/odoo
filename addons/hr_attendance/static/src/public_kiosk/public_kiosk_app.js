@@ -211,11 +211,15 @@ class kioskAttendanceApp extends Component{
 
         let result;
         try {
-            result = await rpc("attendance_barcode_scanned", {
+            const params = {
                 barcode: barcode,
                 token: this.props.token,
-            });
-
+            };
+            const companyIds = this.getAllowedCompaniesParams();
+            if (companyIds) {
+                params["allowed_company_ids"] = companyIds;
+            }
+            result = await rpc("attendance_barcode_scanned", params);
             if (result && result.employee_name) {
                 this.employeeData = result;
                 this.switchDisplay("greet");
