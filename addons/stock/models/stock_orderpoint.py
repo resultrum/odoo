@@ -289,7 +289,13 @@ class StockWarehouseOrderpoint(models.Model):
                 if (float_compare(remainder, 0.0, precision_rounding=rounding) > 0
                         and float_compare(orderpoint.qty_multiple - remainder, 0.0, precision_rounding=rounding) > 0):
                     qty_to_order += orderpoint.qty_multiple - remainder
+                    qty_to_order = orderpoint._adjust_qty_to_order(qty_to_order, qty_forecast_with_visibility)
             orderpoint.qty_to_order = qty_to_order
+
+
+    def _adjust_qty_to_order(self, qty_to_order, qty_forecast_with_visibility):
+        self.ensure_one()
+        return qty_to_order
 
     def _get_qty_multiple_to_order(self):
         """ Calculates the minimum quantity that can be ordered according to the PO UoM or BoM
