@@ -673,21 +673,7 @@ class IrActionsReport(models.Model):
 
     @api.model
     def barcode(self, barcode_type, value, **kwargs):
-        defaults = {
-            'width': (600, int),
-            'height': (100, int),
-            'humanreadable': (False, lambda x: bool(int(x))),
-            'quiet': (True, lambda x: bool(int(x))),
-            'mask': (None, lambda x: x),
-            'barBorder': (4, int),
-            # The QR code can have different layouts depending on the Error Correction Level
-            # See: https://en.wikipedia.org/wiki/QR_code#Error_correction
-            # Level 'L' – up to 7% damage   (default)
-            # Level 'M' – up to 15% damage  (i.e. required by l10n_ch QR bill)
-            # Level 'Q' – up to 25% damage
-            # Level 'H' – up to 30% damage
-            'barLevel': ('L', lambda x: x in ('L', 'M', 'Q', 'H') and x or 'L'),
-        }
+        defaults = self.get_barcode_default_options(barcode_type, **kwargs)
         kwargs = {k: validator(kwargs.get(k, v)) for k, (v, validator) in defaults.items()}
         kwargs['humanReadable'] = kwargs.pop('humanreadable')
         if kwargs['humanReadable']:
@@ -736,6 +722,24 @@ class IrActionsReport(models.Model):
                 raise ValueError("Cannot convert into QR code.")
             else:
                 return self.barcode('Code128', value, **kwargs)
+
+    @api.model
+    def get_barcode_default_options(self, barcode_type, **kwargs):
+        return {
+            'width': (600, int),
+            'height': (100, int),
+            'humanreadable': (False, lambda x: bool(int(x))),
+            'quiet': (True, lambda x: bool(int(x))),
+            'mask': (None, lambda x: x),
+            'barBorder': (4, int),
+            # The QR code can have different layouts depending on the Error Correction Level
+            # See: https://en.wikipedia.org/wiki/QR_code#Error_correction
+            # Level 'L' – up to 7% damage   (default)
+            # Level 'M' – up to 15% damage  (i.e. required by l10n_ch QR bill)
+            # Level 'Q' – up to 25% damage
+            # Level 'H' – up to 30% damage
+            'barLevel': ('L', lambda x: x in ('L', 'M', 'Q', 'H') and x or 'L'),
+        }
 
     @api.model
     def get_available_barcode_masks(self):
