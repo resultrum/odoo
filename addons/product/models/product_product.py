@@ -523,7 +523,8 @@ class ProductProduct(models.Model):
         for product in self.sudo():
             variant = product.product_template_attribute_value_ids._get_combination_name()
 
-            name = variant and "%s (%s)" % (product.name, variant) or product.name
+            name = product._get_product_name()
+            name = variant and "%s (%s)" % (name, variant) or name
             sellers = self.env['product.supplierinfo'].sudo().browse(self.env.context.get('seller_id')) or []
             if not sellers and partner_ids:
                 product_supplier_info = supplier_info_by_template.get(product.product_tmpl_id, [])
@@ -548,6 +549,10 @@ class ProductProduct(models.Model):
                 product.display_name = ", ".join(unique(temp))
             else:
                 product.display_name = get_display_name(name, product.default_code)
+
+    def _get_product_name(self):
+        self.ensure_one()
+        return self.name
 
     @api.model
     def _search_display_name(self, operator, value):
