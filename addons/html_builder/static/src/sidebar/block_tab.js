@@ -11,6 +11,17 @@ import { scrollTo } from "@html_builder/utils/scrolling";
 import { Snippet } from "./snippet";
 import { CustomInnerSnippet } from "./custom_inner_snippet";
 
+/**
+ * @typedef {import("@html_builder/core/drag_and_drop_plugin").DragState} DragState
+ * @typedef {((arg: { snippetEl: HTMLElement }) => void)[]} on_snippet_dropped_handlers
+ * @typedef {((arg: { snippetEl: HTMLElement, dragState: DragState }) => void)[]} on_snippet_dragged_handlers
+ * @typedef {((arg: { droppedEl: HTMLElement, dropzoneEl: HTMLElement, dragState: DragState }) => void)[]} on_snippet_dropped_near_handlers
+ * @typedef {((arg: { droppedEl: HTMLElement, dragState: DragState }) => void)[]} on_snippet_dropped_over_handlers
+ * @typedef {((arg: { droppedEl: HTMLElement, dragState: DragState, x, y }) => void)[]} on_snippet_move_handlers
+ * @typedef {((arg: { droppedEl: HTMLElement, dragState: DragState }) => void)[]} on_snippet_out_dropzone_handlers
+ * @typedef {((arg: { droppedEl: HTMLElement, dragState: DragState }) => void)[]} on_snippet_over_dropzone_handlers
+ */
+
 export class BlockTab extends Component {
     static template = "html_builder.BlockTab";
     static components = { Snippet, CustomInnerSnippet };
@@ -117,6 +128,7 @@ export class BlockTab extends Component {
             {
                 withLoadingEffect: false,
                 shouldInterceptClick: true,
+                canTimeout: false,
             }
         );
     }
@@ -247,6 +259,7 @@ export class BlockTab extends Component {
                 );
                 this.shared.operation.next(async () => await dragAndDropProm, {
                     withLoadingEffect: false,
+                    canTimeout: false,
                 });
                 const restoreDragSavePoint = this.shared.history.makeSavePoint();
                 this.cancelDragAndDrop = () => {
@@ -384,8 +397,13 @@ export class BlockTab extends Component {
                 // If the snippet was dropped outside of a dropzone, find the
                 // dropzone that is the nearest to the dropping point.
                 if (!currentDropzoneEl) {
-                    const blockTabLeft = this.blockTabRef.el.getBoundingClientRect().left;
-                    if (y > 3 && x + helper.getBoundingClientRect().height < blockTabLeft) {
+                    const blockTabRect = this.blockTabRef.el.getBoundingClientRect();
+                    const helperWidth = helper.getBoundingClientRect().width;
+                    const isRTL = document.body.classList.contains("o_rtl");
+                    const isOutOfBlockTab = isRTL
+                        ? blockTabRect.left + blockTabRect.width < x - helperWidth / 2
+                        : x + helperWidth / 2 < blockTabRect.left;
+                    if (y > 3 && isOutOfBlockTab) {
                         const closestDropzoneEl = closest(dropzoneEls, { x, y });
                         if (closestDropzoneEl) {
                             currentDropzoneEl = closestDropzoneEl;
@@ -437,6 +455,7 @@ export class BlockTab extends Component {
                             {
                                 withLoadingEffect: false,
                                 shouldInterceptClick: true,
+                                canTimeout: false,
                             }
                         );
                     }
@@ -466,6 +485,15 @@ export class BlockTab extends Component {
             if (cancel) {
                 this.cancelDragAndDrop();
                 return;
+            }
+            // Update `snippetEl` (and `draggedEl` of `dragState`) if it was
+            // replaced in the handler.
+            if (this.dragState.replacedSnippetEl) {
+                if (this.dragState.draggedEl === snippetEl) {
+                    this.dragState.draggedEl = this.dragState.replacedSnippetEl;
+                }
+                snippetEl = this.dragState.replacedSnippetEl;
+                delete this.dragState.replacedSnippetEl;
             }
         }
         this.env.editor.config.updateInvisibleElementsPanel();

@@ -219,7 +219,11 @@ class TestImLivechatMessage(ChatbotCase, MailCommon):
                     },
                 ),
                 "res.users": self._filter_users_fields(
-                    {"id": self.users[1].id, "share": False},
+                    {
+                        "id": self.users[1].id,
+                        "partner_id": self.users[1].partner_id.id,
+                        "share": False,
+                    },
                 ),
             },
         )
@@ -248,8 +252,6 @@ class TestImLivechatMessage(ChatbotCase, MailCommon):
             rating = self.env["rating.rating"].sudo().search([], order="id desc", limit=1)
             return (
                 [
-                    # channel last interest (not asserted below)
-                    (self.env.cr.dbname, "discuss.channel", channel.id),
                     # unread counter/new message separator (not asserted below)
                     (self.env.cr.dbname, "res.partner", self.env.user.partner_id.id),
                     # new_message
@@ -329,7 +331,11 @@ class TestImLivechatMessage(ChatbotCase, MailCommon):
                                     },
                                 ),
                                 "res.users": self._filter_users_fields(
-                                    {"id": self.env.user.id, "share": True},
+                                    {
+                                        "id": self.env.user.id,
+                                        "partner_id": self.env.user.partner_id.id,
+                                        "share": True,
+                                    },
                                 ),
                             },
                             "id": channel.id,

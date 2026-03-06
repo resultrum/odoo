@@ -34,6 +34,30 @@ registry.category("web_tour.tours").add("PosResTicketScreenTour", {
         ].flat(),
 });
 
+registry.category("web_tour.tours").add("test_cancel_order_from_ui", {
+    steps: () =>
+        [
+            Chrome.startPoS(),
+            Dialog.confirm("Open Register"),
+            FloorScreen.clickTable("5"),
+            ProductScreen.isShown(),
+            ProductScreen.addOrderline("Coca-Cola", "1", "3"),
+            Chrome.clickPlanButton(),
+            Chrome.isSynced(),
+            FloorScreen.isShown(),
+            FloorScreen.clickTable("5"),
+            ProductScreen.clickReview(),
+            ProductScreen.clickControlButton("Cancel Order"),
+            Dialog.confirm(),
+            FloorScreen.isShown(),
+            Chrome.clickOrders(),
+            TicketScreen.noOrderIsThere(),
+            TicketScreen.selectFilter("Paid"),
+            TicketScreen.noOrderIsThere(),
+            Chrome.storedOrderCount(0),
+        ].flat(),
+});
+
 registry.category("web_tour.tours").add("OrderNumberConflictTour", {
     steps: () =>
         [
@@ -47,5 +71,27 @@ registry.category("web_tour.tours").add("OrderNumberConflictTour", {
             TicketScreen.nthRowContains(1, "T 101"),
             TicketScreen.nthRowContains(2, `${String(DateTime.now().year).slice(-2)}1`),
             TicketScreen.nthRowContains(2, "T 103"),
+        ].flat(),
+});
+
+registry.category("web_tour.tours").add("test_sync_lines_qty_update_ticket_screen", {
+    steps: () =>
+        [
+            Chrome.startPoS(),
+            Dialog.confirm("Open Register"),
+
+            Chrome.clickRegister(),
+            ProductScreen.addOrderline("Coca-Cola", "1"),
+            ProductScreen.clickPartnerButton(),
+            ProductScreen.clickCustomer("A powerful Pos man!"),
+
+            Chrome.clickOrders(),
+            TicketScreen.selectOrder("001"),
+            TicketScreen.loadSelectedOrder(),
+
+            ProductScreen.clickOrderline("Coca-Cola", "1"),
+            ProductScreen.clickNumpad("3"),
+            ProductScreen.selectedOrderlineHas("Coca-Cola", "3"),
+            Chrome.clickOrders(),
         ].flat(),
 });

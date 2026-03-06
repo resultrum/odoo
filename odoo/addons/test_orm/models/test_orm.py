@@ -480,6 +480,8 @@ class TestOrmRelated(models.Model):
     foo_binary_bin = fields.Binary(related='foo_id.binary_bin', related_sudo=False)
     foo_binary_bin_sudo = fields.Binary(related='foo_id.binary_bin', related_sudo=True, string='Binary Bin Sudo')
 
+    foo_float_id = fields.Float(related='foo_id.test_float')
+
 
 class TestOrmRelated_Foo(models.Model):
     _name = 'test_orm.related_foo'
@@ -499,6 +501,8 @@ class TestOrmRelated_Foo(models.Model):
 
     bar_names = fields.Char(related='bar_ids.name', related_sudo=False, string="Bar Names")
     bar_names_sudo = fields.Char(related='bar_ids.name', related_sudo=True, string="Bar Names Sudo")
+
+    test_float = fields.Float(digits='ORM Precision')
 
 
 class TestOrmRelated_Bar(models.Model):
@@ -1243,6 +1247,15 @@ class TestOrmAttachmentHost(models.Model):
         'test_orm.attachment', bypass_search_access=True,
     )
 
+    real_binary = fields.Binary(attachment=True)
+    real_attachment_ids = fields.One2many(
+        'ir.attachment', 'res_id', bypass_search_access=True,
+        domain=lambda self: [('res_model', '=', self._name)],
+    )
+    real_m2m_attachment_ids = fields.Many2many(
+        'ir.attachment', bypass_search_access=True,
+    )
+
 
 class DecimalPrecisionTest(models.Model):
     _name = 'decimal.precision.test'
@@ -1609,6 +1622,26 @@ class TestOrmModel_Selection_Required_For_Write_Override(models.Model):  # noqa:
             msg = "No... no no no"
             raise ValueError(msg)
         return super().write(vals)
+
+
+class SelectionCompanyDependent(models.Model):
+    _name = 'test_orm.model_selection_company_dependent'
+    _description = "Model with a company dependent selection field"
+
+    my_selection = fields.Selection([
+        ('manual', "Manual"),
+        ('auto', "Automatic"),
+    ], company_dependent=True)
+
+
+# pylint: disable=E0102
+class SelectionCompanyDependent(models.Model):  # noqa: F811
+    _inherit = 'test_orm.model_selection_company_dependent'
+    _description = "Model with a company dependent selection field extension without ondelete"
+
+    my_selection = fields.Selection(selection_add=[
+        ('semi_auto', "Semi-Automatic"),
+    ])
 
 
 # Special classes to ensure the correct usage of a shared cache amongst users.

@@ -406,12 +406,70 @@ class TestPointOfSaleFlow(CommonPosTest):
         invoice = self.env['account.move'].browse(res['res_id'])
         if invoice.state != 'posted':
             invoice.action_post()
+
+        # Making the invoice draft should send a warning notification to the user
+        with patch.object(self.env.registry['bus.bus'], '_sendone') as mock_send:
+            invoice.button_draft()
+            mock_send.assert_called_with(self.env.user.partner_id, 'simple_notification', {
+                'type': 'danger',
+                'message': "You can't reset this invoice to draft because the POS session is still open. Please close the ongoing session first, then try again.",
+                'sticky': True,
+            })
+
+        self.assertEqual(invoice.state, 'posted')
+
         self.assertAlmostEqual(invoice.amount_total, order.amount_total, places=2)
 
         for iline in invoice.invoice_line_ids:
             self.assertFalse(iline.tax_ids)
 
         self.pos_config_usd.current_session_id.action_pos_session_closing_control()
+
+    def test_order_to_invoice_uses_correct_shipping_address(self):
+        """
+        Test that invoice created from POS uses the correct shipping address
+        same as selected in the POS order.
+        """
+        _, delivery2 = self.env["res.partner"].create([{
+                'name': f"Delivery Address {i + 1}",
+                'type': 'delivery',
+                'parent_id': self.partner.id,
+            } for i in range(2)]
+        )
+
+        self.pos_config_eur.open_ui()
+        current_session = self.pos_config_eur.current_session_id
+        untax, tax = self.compute_tax(self.product, 100, 1)
+
+        pos_order = self.env['pos.order'].create({
+            'company_id': self.env.company.id,
+            'session_id': current_session.id,
+            'partner_id': delivery2.id,
+            'pricelist_id': self.partner.property_product_pricelist.id,
+            'lines': [(0, 0, {
+                'name': "OL/0001",
+                'product_id': self.product.id,
+                'price_unit': 100,
+                'qty': 1.0,
+                'tax_ids': [(6, 0, self.product.taxes_id.ids)],
+                'price_subtotal': untax,
+                'price_subtotal_incl': untax + tax,
+            })],
+            'amount_tax': tax,
+            'amount_total': untax + tax,
+            'amount_paid': 0.0,
+            'amount_return': 0.0,
+            'last_order_preparation_change': '{}'
+        })
+
+        pos_order.action_pos_order_invoice()
+        invoice = pos_order.account_move
+
+        self.assertEqual(
+            invoice.partner_shipping_id.id,
+            delivery2.id,
+            "The shipping address should be 'Delivery Address 2' as selected in the POS order."
+        )
 
     def test_order_with_deleted_tax(self):
         order, _ = self.create_backend_pos_order({
@@ -1347,10 +1405,69 @@ class TestPointOfSaleFlow(CommonPosTest):
                 'name': fields.Datetime.now(),
                 'payment_method_id': self.cash_payment_method.id
             }]],
+            'is_refund': True,
         }]
         self.env['pos.order'].sync_from_ui(refund_values)
         refunded_order_line = self.env['pos.order.line'].search([('product_id', '=', product.id), ('qty', '=', -2)])
         self.assertEqual(refunded_order_line.total_cost, -20)
+
+    def test_ship_later_total_cost_fallback_to_standard_price(self):
+        # Test that total_cost falls back to standard_price for a regular (non-refund) ship later
+        # order on a FIFO/AVCO product when the stock moves have no valuation yet (goods not
+        # yet delivered). Before the fix, total_cost was incorrectly computed as 0.
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+        self.pos_config_usd.write({'ship_later': True})
+
+        categ = self.env['product.category'].create({
+            'name': 'AVCO Category',
+            'property_cost_method': 'average',
+            'property_valuation': 'real_time',
+        })
+        product = self.env['product.product'].create({
+            'name': 'Ship Later AVCO Product',
+            'categ_id': categ.id,
+            'lst_price': 15,
+            'standard_price': 10,
+            'is_storable': True,
+        })
+
+        order_data = {
+            'company_id': self.env.company.id,
+            'session_id': current_session.id,
+            'partner_id': self.partner.id,
+            'shipping_date': fields.Date.today(),
+            'lines': [[0, 0, {
+                'name': "OL/0001",
+                'product_id': product.id,
+                'price_unit': 15,
+                'discount': 0,
+                'qty': 2,
+                'tax_ids': [[6, False, []]],
+                'price_subtotal': 30,
+                'price_subtotal_incl': 30,
+            }]],
+            'payment_ids': [(0, 0, {
+                'amount': 30,
+                'name': fields.Datetime.now(),
+                'payment_method_id': self.cash_payment_method.id,
+            })],
+            'amount_paid': 30.0,
+            'amount_total': 30.0,
+            'amount_tax': 0.0,
+            'amount_return': 0.0,
+            'last_order_preparation_change': '{}',
+        }
+        self.env['pos.order'].sync_from_ui([order_data])
+        order = current_session.order_ids[0]
+
+        # Stock moves exist (ship later picking created) but are unvalued because the goods
+        # have not been delivered yet. total_cost must fall back to qty * standard_price.
+        self.assertEqual(
+            order.lines[0].total_cost, 20,
+            "total_cost should equal qty * standard_price (2 * 10 = 20) when ship later "
+            "stock moves have zero valuation",
+        )
 
     def test_cancel_order_with_past_preset(self):
         # Test that cancelling an order with a past preset does not raise an error and does cancel the order.
@@ -1588,6 +1705,7 @@ class TestPointOfSaleFlow(CommonPosTest):
             'acc_number': 'FR7612345678901234567890123',
             'partner_id': self.company.partner_id.id,
             'bank_name': 'Test Bank',
+            'allow_out_payment': True,
         })
         current_session = self.pos_config_usd.current_session_id
         self.order = self.env['pos.order'].create({
@@ -1874,3 +1992,310 @@ class TestPointOfSaleFlow(CommonPosTest):
         order_line = order.lines[0]
         self.env.invalidate_all()
         order_line.with_user(user).with_company(branch)._compute_total_cost(None)
+
+    def test_delete_res_partner_linked_to_pos_order(self):
+        """ Test that a partner linked to a pos order cannot be deleted. """
+        partner = self.env['res.partner'].create({
+            'name': 'Partner test',
+        })
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+
+        self.env['pos.order'].create({
+            'company_id': self.env.company.id,
+            'session_id': current_session.id,
+            'partner_id': partner.id,
+            'lines': [(0, 0, {
+                'name': "OL/0001",
+                'product_id': self.product.id,
+                'price_unit': 450,
+                'discount': 0,
+                'qty': 1,
+                'tax_ids': [[6, False, []]],
+                'price_subtotal': 450,
+                'price_subtotal_incl': 450,
+            })],
+            'pricelist_id': self.pos_config_usd.pricelist_id.id,
+            'amount_paid': 450.0,
+            'amount_total': 450.0,
+            'amount_tax': 0.0,
+            'amount_return': 0.0,
+            'to_invoice': False,
+            'last_order_preparation_change': '{}'
+        })
+
+        with self.assertRaises(ValidationError, msg='You cannot delete a customer that has point of sales orders. You can archive it instead.'):
+            partner.unlink()
+
+    def test_split_payment_linked_to_accounting_partner(self):
+        self.bank_payment_method.write({'split_transactions': True})
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+
+        child_partner = self.env['res.partner'].create({
+            'name': 'partner1 child',
+            'parent_id': self.partner.id
+        })
+        product_order = {
+            'amount_paid': 750,
+            'amount_tax': 0,
+            'amount_return': 0,
+            'amount_total': 750,
+            'date_order': fields.Datetime.to_string(fields.Datetime.now()),
+            'fiscal_position_id': False,
+            'lines': [[0, 0, {
+                'discount': 0,
+                'pack_lot_ids': [],
+                'price_unit': 750.0,
+                'product_id': self.product.id,
+                'price_subtotal': 750.0,
+                'price_subtotal_incl': 750.0,
+                'tax_ids': [[6, False, []]],
+                'qty': 1,
+            }]],
+            'name': 'Order 12345-123-1234',
+            'partner_id': child_partner.id,
+            'session_id': current_session.id,
+            'sequence_number': 2,
+            'payment_ids': [[0, 0, {
+                'amount': 750,
+                'name': fields.Datetime.now(),
+                'payment_method_id': self.bank_payment_method.id
+            }]],
+            'uuid': '12345-123-1234',
+            'user_id': self.env.uid,
+            'to_invoice': False}
+
+        self.env['pos.order'].sync_from_ui([product_order])
+        current_session.close_session_from_ui()
+        order_balance = current_session.move_id.line_ids.filtered(
+            lambda l: l.account_id.account_type == "asset_receivable"
+            and l.partner_id == self.partner
+        ).balance
+        payment_balance = current_session.bank_payment_ids.move_id.line_ids.filtered(
+            lambda l: l.account_id.account_type == "asset_receivable"
+            and l.partner_id == self.partner
+        ).balance
+        self.assertEqual(order_balance + payment_balance, 0)
+
+    def test_draft_orders_products_loading(self):
+        """ Test that products are correctly loaded when limited product loading is enabled and there are draft orders. """
+        self.env['ir.config_parameter'].sudo().set_param('point_of_sale.limited_product_count', 1)
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+        self.env['pos.order'].create([{
+            'company_id': self.env.company.id,
+            'session_id': current_session.id,
+            'partner_id': self.partner.id,
+            'lines': [
+                Command.create({
+                    'product_id': product.id,
+                    'qty': 1,
+                    'price_subtotal': 1,
+                    'price_subtotal_incl': 1,
+                }),
+            ],
+            'amount_tax': 0.0,
+            'amount_total': 1,
+            'amount_paid': 1,
+            'amount_return': 0.0,
+            'state': 'draft',
+        } for product in (self.product_a, self.product_b)])
+
+        data = current_session.with_context(pos_limited_loading=True).load_data([])
+        loaded_product_ids = [p['id'] for p in data['product.product']]
+        self.assertIn(self.product_a.id, loaded_product_ids)
+        self.assertIn(self.product_b.id, loaded_product_ids)
+
+    def test_filter_local_data_no_errors(self):
+        new_company = self.env['res.company'].create({
+            'name': 'New Company',
+            'country_id': self.env.company.country_id.id,
+            'currency_id': self.env.company.currency_id.id,
+        })
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+        product = self.env['product.product'].create({
+            'name': 'Product A',
+            'is_storable': True,
+            'available_in_pos': True,
+            'lst_price': 200.0,
+            'company_id': new_company.id,
+        })
+        self.env.clear()
+        data = current_session.with_company(self.env.company).filter_local_data({'product.product': [product.id]})
+        self.assertIn(product.id, data['product.product'])
+
+    def test_string_sequence_number(self):
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+        current_session.config_id.order_seq_id.prefix = '/AA'
+        current_session.config_id.order_seq_id.suffix = '1.B'
+        product_order = {
+            'amount_paid': 750,
+            'amount_tax': 0,
+            'amount_return': 0,
+            'amount_total': 750,
+            'date_order': fields.Datetime.to_string(fields.Datetime.now()),
+            'lines': [[0, 0, {
+                'price_unit': 750.0,
+                'product_id': self.product.id,
+                'price_subtotal': 750.0,
+                'price_subtotal_incl': 750.0,
+                'tax_ids': [[6, False, []]],
+                'qty': 1,
+            }]],
+            'name': 'Order 12345-123-1234',
+            'partner_id': False,
+            'session_id': current_session.id,
+            'payment_ids': [[0, 0, {
+                'amount': 750,
+                'name': fields.Datetime.now(),
+                'payment_method_id': self.bank_payment_method.id
+            }]],
+            'uuid': '12345-123-1234',
+            'user_id': self.env.uid,
+            'to_invoice': False}
+
+        self.env['pos.order'].sync_from_ui([product_order])
+        order = self.env['pos.order'].search([])
+        self.assertEqual(order.name, f"/AA - {order.pos_reference.split('-')[-1]} - 1.B")
+
+    def test_valuation_order_invoiced_after_session_closed(self):
+        """Test that an order can be invoiced after its session is closed.
+        Scenario:
+            1. Create a POS session and two orders:
+            - Order A: Not to be invoiced immediately.
+            - Order B: To be invoiced immediately.
+            2. Close the POS session.
+            3. Ensure:
+            - Both orders have `reversed_move_ids` unset.
+            4. Assign a partner to Order A and invoice it AFTER the session is closed.
+            - Confirm that `reversed_move_ids` is set accordingly.
+        """
+        self.env.company.inventory_valuation = 'real_time'
+        self.real_time_categ = self.env['product.category'].create({
+            'name': 'test category',
+            'parent_id': False,
+            'property_cost_method': 'fifo',
+            'property_valuation': 'real_time',
+        })
+        tracked_product = self.env['product.product'].create({
+            'name': 'Tracked Product',
+            'is_storable': True,
+            'available_in_pos': True,
+            'lst_price': 100.0,
+            'standard_price': 80.0,
+            'categ_id': self.real_time_categ.id,
+        })
+
+        order_data = {
+            'line_data': [
+                {'product_id': tracked_product.id},
+            ],
+            'payment_data': [
+                {'payment_method_id': self.bank_payment_method.id, 'amount': 115},
+            ],
+            'refund_data': [
+                {'payment_method_id': self.cash_payment_method.id, 'amount': -115},
+            ]
+        }
+
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+
+        order_no_invoice, refund_order_no_invoice = self.create_backend_pos_order({**order_data, 'to_invoice': False, 'partner_id': False})
+        current_session.close_session_from_ui()
+        self.assertEqual(current_session.state, 'closed')
+        order_no_invoice.partner_id = self.partner
+        order_no_invoice.action_pos_order_invoice()
+
+        reversal_move = self.env['account.move'].search([('reversed_pos_order_id', '=', order_no_invoice.id)], limit=1)
+        self.assertEqual(len(reversal_move.line_ids), 5)
+        for line in order_no_invoice.account_move.line_ids:
+            reverse_line = reversal_move.line_ids.filtered(lambda l: l.account_id == line.account_id)
+            self.assertEqual(line.debit, reverse_line.credit)
+            self.assertEqual(line.credit, reverse_line.debit)
+
+        refund_order_no_invoice.partner_id = self.partner
+        refund_order_no_invoice.action_pos_order_invoice()
+        reversal_move = self.env['account.move'].search([('reversed_pos_order_id', '=', refund_order_no_invoice.id)], limit=1)
+        self.assertEqual(len(reversal_move.line_ids), 5)
+        for line in refund_order_no_invoice.account_move.line_ids:
+            reverse_line = reversal_move.line_ids.filtered(lambda l: l.account_id == line.account_id)
+            self.assertEqual(line.debit, reverse_line.credit)
+            self.assertEqual(line.credit, reverse_line.debit)
+
+    def test_order_invoiced_customer_account_after_session_closed(self):
+        """Test that an order paid via customer account can be invoiced after its session is closed.
+           Then make sure that the reversal move is reconciled with the PoS session account move line so that only the invoice remains open.
+        """
+        order_data = {
+            'line_data': [
+                {'product_id': self.twenty_dollars_with_10_incl.product_variant_id.id},
+            ],
+            'payment_data': [
+                {'payment_method_id': self.credit_payment_method.id, 'amount': 20},
+            ],
+            'order_data': {
+                'partner_id': self.partner.id,
+            },
+        }
+
+        self.pos_config_usd.open_ui()
+        current_session = self.pos_config_usd.current_session_id
+
+        order_no_invoice, _ = self.create_backend_pos_order({**order_data, 'to_invoice': False})
+
+        current_session.close_session_from_ui()
+        self.assertEqual(current_session.state, 'closed')
+
+        order_no_invoice.action_pos_order_invoice()
+        customer_account_receivable_entry = current_session.move_id.line_ids.filtered(lambda l: l.partner_id == self.partner)
+        reversal_receivable_entry = order_no_invoice.reversed_move_ids.line_ids.filtered(lambda l: l.account_id == self.partner.property_account_receivable_id)
+        self.assertTrue(customer_account_receivable_entry.reconciled)
+        self.assertTrue(reversal_receivable_entry.reconciled)
+        self.assertEqual(customer_account_receivable_entry.reconciled_lines_ids, reversal_receivable_entry)
+
+    def test_add_two_lines_with_same_uuid_through_sync_from_ui(self):
+        """Test that adding two lines with the same UUID doesn't cause issues."""
+        self.pos_config_usd.open_ui()
+        order_data = {
+            'line_data': [
+                {'product_id': self.product.product_variant_id.id},
+            ],
+        }
+        order, _ = self.create_backend_pos_order({**order_data})
+        sync_from_ui_values = {
+            "access_token": order.access_token,
+            "date_order": fields.Datetime.to_string(fields.Datetime.now()),
+            "session_id": self.pos_config_usd.current_session_id.id,
+            "company_id": self.env.company.id,
+            "amount_tax": 0.0,
+            "amount_total": 10.0,
+            "amount_paid": 0,
+            "amount_return": 0,
+            "uuid": order.uuid,
+            "id": order.id,
+            "state": "draft",
+            "lines": [
+                [
+                0,
+                0,
+                {
+                    "product_id": self.product.product_variant_id.id,
+                    "price_unit": 10.0,
+                    "qty": 2,
+                    "price_subtotal": 20.0,
+                    "price_subtotal_incl": 20.0,
+                    "tax_ids": [],
+                    "uuid": order.lines[0].uuid,
+                }
+                ]
+            ]
+        }
+        self.env['pos.order'].sync_from_ui([{
+            **sync_from_ui_values,
+        }])
+        self.assertEqual(len(order.lines), 1, "Two lines with the same UUID were created")
+        self.assertEqual(order.lines[0].qty, 2, "The quantity of the line should have been updated to 2")

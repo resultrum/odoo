@@ -93,7 +93,11 @@ class TestGetDiscussChannel(TestImLivechatCommon, MailCommon):
         self.assertEqual(
             data["res.users"],
             self._filter_users_fields(
-                {"id": self.user_root.id, "share": False},
+                {
+                    "id": self.user_root.id,
+                    "partner_id": self.partner_root.id,
+                    "share": False,
+                },
             ),
         )
         # ensure visitor info are correct with real user
@@ -164,11 +168,18 @@ class TestGetDiscussChannel(TestImLivechatCommon, MailCommon):
         self.assertEqual(
             data["res.users"],
             self._filter_users_fields(
-                {"id": self.user_root.id, "employee_ids": [], "share": False},
+                {
+                    "id": self.user_root.id,
+                    "employee_ids": [],
+                    "partner_id": self.partner_root.id,
+                    "share": False,
+                },
                 {
                     "id": test_user.id,
                     "is_admin": False,
+                    "is_livechat_manager": False,
                     "notification_type": "email",
+                    "partner_id": test_user.partner_id.id,
                     "signature": ["markup", str(test_user.signature)],
                     "share": False,
                 },
@@ -284,11 +295,18 @@ class TestGetDiscussChannel(TestImLivechatCommon, MailCommon):
         self.assertEqual(
             data["res.users"],
             self._filter_users_fields(
-                {"id": self.user_root.id, "employee_ids": [], "share": False},
+                {
+                    "id": self.user_root.id,
+                    "employee_ids": [],
+                    "partner_id": self.partner_root.id,
+                    "share": False,
+                },
                 {
                     "id": operator.id,
                     "is_admin": False,
+                    "is_livechat_manager": False,
                     "notification_type": "email",
+                    "partner_id": operator.partner_id.id,
                     "share": False,
                     "signature": ["markup", str(operator.signature)],
                 },
@@ -326,7 +344,7 @@ class TestGetDiscussChannel(TestImLivechatCommon, MailCommon):
         member = channel.with_user(operator).self_member_id
         self.assertEqual(member.partner_id, operator.partner_id, "operator should be member of channel")
         self.assertFalse(member.is_pinned, "channel should not be pinned for operator initially")
-        channel.message_post(body="cc")
+        channel.message_post(body="cc", message_type="comment")
         self.assertTrue(member.is_pinned, "channel should be pinned for operator after visitor sent a message")
         self.authenticate(operator.login, self.password)
         data = self.make_jsonrpc_request("/mail/data", {"fetch_params": ["channels_as_member"]})
@@ -343,7 +361,7 @@ class TestGetDiscussChannel(TestImLivechatCommon, MailCommon):
                 ("partner_id", "in", self.operators.partner_id.ids),
             ]
         )
-        message = self.env["discuss.channel"].browse(data["channel_id"]).message_post(body="cc")
+        message = self.env["discuss.channel"].browse(data["channel_id"]).message_post(body="cc", message_type="comment")
         member_of_operator._mark_as_read(message.id)
         with freeze_time(fields.Datetime.to_string(fields.Datetime.now() + timedelta(days=1))):
             member_of_operator._gc_unpin_livechat_sessions()
@@ -360,7 +378,7 @@ class TestGetDiscussChannel(TestImLivechatCommon, MailCommon):
                 ("partner_id", "in", self.operators.partner_id.ids),
             ]
         )
-        self.env["discuss.channel"].browse(data["channel_id"]).message_post(body="cc")
+        self.env["discuss.channel"].browse(data["channel_id"]).message_post(body="cc", message_type="comment")
         with freeze_time(fields.Datetime.to_string(fields.Datetime.now() + timedelta(days=1))):
             member_of_operator._gc_unpin_livechat_sessions()
         self.assertTrue(member_of_operator.is_pinned, "unread channel should not be unpinned after autovacuum")

@@ -170,21 +170,33 @@ class TestMyInvoisPoS(TestPoSCommon):
     @mute_logger('odoo.addons.point_of_sale.models.pos_order')
     def test_consolidate_invoices_from_multiple_configs(self):
         """ When consolidating from multiple configs at once, we expect one Consolidated Invoice per config. """
+        orders = self.env['pos.order']
         with freeze_time("2025-01-01"):
             with self.with_pos_session():
-                first_order = self._create_order({'pos_order_lines_ui_args': [(self.product_one, 1.0)]})
+                orders |= self._create_order({'pos_order_lines_ui_args': [(self.product_one, 1.0)]})
             self.config = self.other_config  # Switch config
             with self.with_pos_session():
-                second_order = self._create_order({'pos_order_lines_ui_args': [(self.product_two, 1.0)]})
-            # Consolidate them
-            wizard = self.env['myinvois.consolidate.invoice.wizard'].create({
-                'date_from': '2025-01-01',
-                'date_to': '2025-01-31',
-                'consolidation_type': 'pos',
-            })
-            wizard.button_consolidate()
-            consolidated_invoice = (first_order | second_order).consolidated_invoice_ids
-            self.assertEqual(len(consolidated_invoice), 2)  # One consolidated invoice holds up to 100 lines
+                orders |= self._create_order({'pos_order_lines_ui_args': [(self.product_two, 1.0)]})
+
+        with freeze_time("2025-01-02"):
+            with self.with_pos_session():
+                orders |= self._create_order({'pos_order_lines_ui_args': [(self.product_one, 1.0)]})
+                orders |= self._create_order({'pos_order_lines_ui_args': [(self.product_two, 1.0)]})
+            self.config = self.basic_config  # Switch config
+            with self.with_pos_session():
+                orders |= self._create_order({'pos_order_lines_ui_args': [(self.product_two, 1.0)]})
+        # Consolidate them
+        wizard = self.env['myinvois.consolidate.invoice.wizard'].create({
+            'date_from': '2025-01-01',
+            'date_to': '2025-01-31',
+            'consolidation_type': 'pos',
+        })
+        wizard.button_consolidate()
+        consolidated_invoice = orders.consolidated_invoice_ids
+        self.assertEqual(len(consolidated_invoice), 2)  # One consolidated invoice holds up to 100 lines
+        config1, config2 = consolidated_invoice
+        self.assertEqual(config1.linked_order_count, 2)
+        self.assertEqual(config2.linked_order_count, 3)
 
     @mute_logger('odoo.addons.point_of_sale.models.pos_order')
     def test_consolidate_invoices_limit(self):
@@ -385,6 +397,60 @@ class TestMyInvoisPoS(TestPoSCommon):
             # And the discount should be 100
             self._assert_node_values(xml_tree, "cac:InvoiceLine/cac:AllowanceCharge/cbc:Amount", '100.00')
 
+    @mute_logger('odoo.addons.point_of_sale.models.pos_order')
+    def test_consolidate_invoices_with_tax_included_in_price(self):
+        """ Test that price_include taxes don't incorrectly appear as discounts in XML. """
+        tax_included = self.env['account.tax'].create({
+            'name': "10% Included",
+            'amount_type': 'percent',
+            'amount': 10,
+            'price_include_override': 'tax_included',
+            'l10n_my_tax_type': '01',
+        })
+        product = self.create_product("Product", self.categ_basic, 110, tax_ids=tax_included.ids)
+
+        with freeze_time("2025-01-01"):
+            with self.with_pos_session():
+                order = self._create_order({'pos_order_lines_ui_args': [(product, 1.0)]})
+            wizard = self.env['myinvois.consolidate.invoice.wizard'].create({
+                'date_from': '2025-01-01',
+                'date_to': '2025-01-31',
+                'consolidation_type': 'pos',
+            })
+            wizard.button_consolidate()
+            order.consolidated_invoice_ids.action_generate_xml_file()
+            root = etree.fromstring(order.consolidated_invoice_ids.myinvois_file_id.raw)
+            with file_open('l10n_my_edi_pos/tests/expected_xmls/consolidated_invoice_tax_included.xml', 'rb') as f:
+                expected_xml = etree.fromstring(f.read())
+            self.assertXmlTreeEqual(root, expected_xml)
+
+    @mute_logger('odoo.addons.point_of_sale.models.pos_order')
+    def test_consolidate_invoices_with_tax_included_in_price_and_discount(self):
+        """ Test that price_include taxes with actual discounts work correctly. """
+        tax_included = self.env['account.tax'].create({
+            'name': "10% Included",
+            'amount_type': 'percent',
+            'amount': 10,
+            'price_include_override': 'tax_included',
+            'l10n_my_tax_type': '01',
+        })
+        product = self.create_product("Product", self.categ_basic, 110, tax_ids=tax_included.ids)
+
+        with freeze_time("2025-01-01"):
+            with self.with_pos_session():
+                order = self._create_order({'pos_order_lines_ui_args': [(product, 1.0, 20)]})
+            wizard = self.env['myinvois.consolidate.invoice.wizard'].create({
+                'date_from': '2025-01-01',
+                'date_to': '2025-01-31',
+                'consolidation_type': 'pos',
+            })
+            wizard.button_consolidate()
+            order.consolidated_invoice_ids.action_generate_xml_file()
+            root = etree.fromstring(order.consolidated_invoice_ids.myinvois_file_id.raw)
+            with file_open('l10n_my_edi_pos/tests/expected_xmls/consolidated_invoice_tax_included_with_discount.xml', 'rb') as f:
+                expected_xml = etree.fromstring(f.read())
+            self.assertXmlTreeEqual(root, expected_xml)
+
     #########
     # Refunds
     #########
@@ -469,6 +535,9 @@ class TestMyInvoisPoS(TestPoSCommon):
                 # Fails, the order should be invoiced in such a case
                 with self.assertRaises(UserError):
                     self._create_order({
+                        'pos_order_ui_args': {
+                            'is_refund': True,
+                        },
                         'pos_order_lines_ui_args': [
                             {
                                 'product': self.product_one,
@@ -480,6 +549,9 @@ class TestMyInvoisPoS(TestPoSCommon):
                 # If it is, it will work
                 self.invoicing_customer.vat = 'EI00000000010'
                 self._create_order({
+                    'pos_order_ui_args': {
+                        'is_refund': True,
+                    },
                     'pos_order_lines_ui_args': [
                         {
                             'product': self.product_one,
@@ -500,6 +572,9 @@ class TestMyInvoisPoS(TestPoSCommon):
                 # Fails, the order should be invoiced in such a case
                 with self.assertRaises(UserError):
                     self._create_order({
+                        'pos_order_ui_args': {
+                            'is_refund': True,
+                        },
                         'pos_order_lines_ui_args': [
                             {
                                 'product': self.product_one,
@@ -510,6 +585,9 @@ class TestMyInvoisPoS(TestPoSCommon):
                     })
                 # If invoicing is checked, it will work.
                 self._create_order({
+                    'pos_order_ui_args': {
+                        'is_refund': True,
+                    },
                     'pos_order_lines_ui_args': [
                         {
                             'product': self.product_one,
@@ -571,6 +649,9 @@ class TestMyInvoisPoS(TestPoSCommon):
             # We then create the refund for the order
             with self.with_pos_session(), patch(CONTACT_PROXY_METHOD, new=self._mock_successful_submission):
                 self._create_order({
+                    'pos_order_ui_args': {
+                        'is_refund': True,
+                    },
                     'pos_order_lines_ui_args': [
                         {
                             'product': self.product_one,
@@ -690,6 +771,9 @@ class TestMyInvoisPoS(TestPoSCommon):
             # We then create the refund for the first_order
             with self.with_pos_session(), patch(CONTACT_PROXY_METHOD, new=self._mock_successful_submission):
                 self._create_order({
+                    'pos_order_ui_args': {
+                        'is_refund': True,
+                    },
                     'pos_order_lines_ui_args': [
                         {
                             'product': product_1,

@@ -82,11 +82,10 @@ export class Chatbot extends Record {
         });
         this.store.insert(store_data);
         this.thread.messages.add(message_id);
+        this.thread.livechat_end_dt = false;
         if (this.currentStep) {
             this.currentStep.isLast = false;
-            this.thread.livechat_end_dt = false;
         }
-        this.start();
     }
 
     /**
@@ -148,7 +147,7 @@ export class Chatbot extends Record {
      * Go to the next step of the chatbot, fetch it if needed.
      */
     async _goToNextStep() {
-        if (!this.thread || this.currentStep?.isLast) {
+        if (!this.thread) {
             return;
         }
         if (this.steps.at(-1)?.eq(this.currentStep)) {

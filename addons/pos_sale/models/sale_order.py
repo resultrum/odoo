@@ -128,20 +128,45 @@ class SaleOrderLine(models.Model):
             'write_date', 'product_custom_attribute_value_ids'
         ]
 
-    @api.depends('pos_order_line_ids.qty', 'pos_order_line_ids.order_id.picking_ids', 'pos_order_line_ids.order_id.picking_ids.state')
+    @api.depends('pos_order_line_ids.qty', 'pos_order_line_ids.order_id.picking_ids', 'pos_order_line_ids.order_id.picking_ids.state', 'pos_order_line_ids.refund_orderline_ids.order_id.picking_ids.state')
     def _compute_qty_delivered(self):
         super()._compute_qty_delivered()
-        for sale_line in self:
-            pos_lines = sale_line.sudo().pos_order_line_ids.filtered(lambda order_line: order_line.order_id.state not in ['cancel', 'draft'])
-            if all(picking.state == 'done' for picking in pos_lines.order_id.picking_ids):
-                sale_line.qty_delivered += sum((self._convert_qty(sale_line, pos_line.qty, 'p2s') for pos_line in pos_lines if sale_line.product_id.type != 'service'), 0)
 
-    @api.depends('pos_order_line_ids.qty')
+    def _prepare_qty_delivered(self):
+        delivered_qties = super()._prepare_qty_delivered()
+
+        def _get_pos_delivered_qty(sale_line, pos_lines):
+            if all(picking.state == "done" for picking in pos_lines.order_id.picking_ids):
+                # Sum converted quantities from POS to sale order UoM
+                return sum(self._convert_qty(sale_line, pos_line.qty, "p2s") for pos_line in pos_lines)
+            return 0
+
+        def line_filter(line):
+            return line.order_id.state not in ["cancel", "draft"]
+
+        for sale_line in self.filtered(lambda line: line.product_id.type != "service"):
+            pos_line_ids = sale_line.sudo().pos_order_line_ids
+            pos_qty = _get_pos_delivered_qty(sale_line, pos_line_ids.filtered(line_filter))
+            if pos_qty != 0:
+                delivered_qties[sale_line] += pos_qty
+
+            refund_qty = _get_pos_delivered_qty(sale_line, pos_line_ids.refund_orderline_ids.filtered(line_filter))
+            if refund_qty != 0:
+                delivered_qties[sale_line] += refund_qty
+        return delivered_qties
+
+    @api.depends('pos_order_line_ids.qty', 'pos_order_line_ids.order_id.state')
     def _compute_qty_invoiced(self):
         super()._compute_qty_invoiced()
+
+    def _prepare_qty_invoiced(self):
+        invoiced_qties = super()._prepare_qty_invoiced()
         for sale_line in self:
             pos_lines = sale_line.sudo().pos_order_line_ids.filtered(lambda order_line: order_line.order_id.state not in ['cancel', 'draft'])
-            sale_line.qty_invoiced += sum([self._convert_qty(sale_line, pos_line.qty, 'p2s') for pos_line in pos_lines], 0)
+            invoiced_qties[sale_line] += sum((
+                self._convert_qty(sale_line, pos_line.qty, 'p2s') for pos_line in pos_lines
+            ), 0)
+        return invoiced_qties
 
     def _get_sale_order_fields(self):
         return ["product_id", "display_name", "price_unit", "product_uom_qty", "tax_ids", "qty_delivered", "qty_invoiced", "discount", "qty_to_invoice", "price_total", "is_downpayment"]
@@ -155,8 +180,12 @@ class SaleOrderLine(models.Model):
                 sale_line_uom = sale_line.product_uom_id
                 item = sale_line.read(field_names, load=False)[0]
                 if sale_line.product_id.tracking != 'none':
-                    item['lot_names'] = sale_line.move_ids.move_line_ids.lot_id.mapped('name')
-                    item['lot_qty_by_name'] = {line.lot_id.name: line.quantity for line in sale_line.move_ids.move_line_ids}
+                    move_lines = sale_line.move_ids.move_line_ids.filtered(lambda ml: ml.product_id.id == sale_line.product_id.id)
+                    item['lot_names'] = move_lines.lot_id.mapped('name')
+                    lot_qty_by_name = {}
+                    for line in move_lines:
+                        lot_qty_by_name[line.lot_id.name] = lot_qty_by_name.get(line.lot_id.name, 0.0) + line.quantity
+                    item['lot_qty_by_name'] = lot_qty_by_name
                 if product_uom == sale_line_uom:
                     results.append(item)
                     continue

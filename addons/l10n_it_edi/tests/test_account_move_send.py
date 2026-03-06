@@ -239,3 +239,36 @@ class TestItAccountMoveSend(TestItEdi, TestAccountMoveSendCommon):
             self.assertFalse(invoices[1].l10n_it_edi_state)
             self.assertFalse(invoices[1].l10n_it_edi_transaction)
             self.assertTrue(invoices[1].l10n_it_edi_header)
+
+    def test_enasarco_no_warnings(self):
+        self.proxy_user.edi_mode = 'demo'
+        ref = self.env['account.chart.template'].with_company(self.proxy_user.company_id).ref
+        self.partner_a.write({
+            "l10n_it_codice_fiscale": "PERTLELPALQZRTSN",
+            'country_id': self.env.ref('base.it').id,
+            'street': 'Test street',
+            'city': 'Test town',
+            'zip': '32121',
+        })
+        invoice = self.init_invoice(partners=self.partner_a, taxes=ref('22v') | ref('23vwo') | ref('enasarcov'))
+        wizard = self.create_send_and_print(invoice, sending_methods=['l10n_it_edi'])
+        non_info_alerts = {k: v for k, v in wizard.alerts.items() if v.get('level') != 'info'}
+        self.assertFalse(non_info_alerts)
+
+    def test_l10n_it_edi_foreign_currency(self):
+        invoice = self.env['account.move'].create({
+            'move_type': 'out_invoice',
+            'partner_id': self.italian_partner_a.id,
+            'company_id': self.company.id,
+            'currency_id': self.env.ref('base.USD').id,
+            'invoice_line_ids': [(0, 0, {
+                'name': 'Zero total line',
+                'quantity': 1.0,
+                'price_unit': 100.0,
+                'discount': 100.0,
+                'tax_ids': [(6, 0, self.default_tax.ids)],
+            })],
+        })
+        invoice.action_post()
+        self.generate_l10n_it_edi_send_attachments(invoice)
+        self.assertTrue(invoice.l10n_it_edi_attachment_file)

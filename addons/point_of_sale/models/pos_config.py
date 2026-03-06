@@ -234,14 +234,27 @@ class PosConfig(models.Model):
             'records': records
         })
 
+        for config in self.trusted_config_ids:
+            config._notify('SYNCHRONISATION', {
+                'static_records': static_records,
+                'session_id': config.current_session_id.id,
+                'login_number': 0,
+                'records': records
+            })
+
     def read_config_open_orders(self, domain, record_ids=[]):
         delete_record_ids = {}
         dynamic_records = {}
 
-        for model, domain in domain.items():
-            ids = record_ids[model]
-            delete_record_ids[model] = [id for id in ids if not self.env[model].browse(id).exists()]
-            dynamic_records[model] = self.env[model].search(domain)
+        for model, dom in domain.items():
+            ids = record_ids.get(model, [])
+            browsed = self.env[model].browse(ids)
+
+            dynamic_records[model] = self.env[model].search(dom)
+            delete_record_ids[model] = browsed.filtered(lambda r: not r.exists()).ids
+            # Cancelled orders must be forced deleted from the user interface.
+            if model == "pos.order":
+                delete_record_ids[model] += browsed.exists().filtered(lambda r: r.state == "cancel").ids
 
         pos_order_data = dynamic_records.get('pos.order') or self.env['pos.order']
         data = pos_order_data.read_pos_data([], self)
@@ -272,7 +285,7 @@ class PosConfig(models.Model):
 
         record = read_records[0]
         record['_server_version'] = exp_version()
-        record['_base_url'] = self.get_base_url()
+        record['_base_url'] = config.get_base_url()
         record['_data_server_date'] = self.env.context.get('pos_last_server_date') or self.env.cr.now()
         record['_has_cash_move_perm'] = self.env.user.has_group('account.group_account_invoice')
         record['_has_cash_delete_perm'] = self.env.user.has_group('account.group_account_basic')
@@ -363,7 +376,7 @@ class PosConfig(models.Model):
             },
         }
 
-        all_paid_orders = session.order_ids.filtered(lambda o: o.state == 'paid')
+        all_paid_orders = session.order_ids.filtered(lambda o: o.state in ['paid', 'done'])
         refund_orders = all_paid_orders.filtered(lambda o: o.is_refund)
         draft_orders = session.order_ids.filtered(lambda o: o.state == 'draft')
         non_refund_orders = all_paid_orders - refund_orders
@@ -636,7 +649,7 @@ class PosConfig(models.Model):
         result = super(PosConfig, self).write(vals)
 
         for config in self:
-            if config.use_presets and config.default_preset_id.id not in config.available_preset_ids.ids:
+            if config.use_presets and config.default_preset_id and config.default_preset_id.id not in config.available_preset_ids.ids:
                 config.available_preset_ids |= config.default_preset_id
 
         self.sudo()._set_fiscal_position()
@@ -699,7 +712,7 @@ class PosConfig(models.Model):
         return new_vals
 
     def _get_forbidden_change_fields(self):
-        return ['module_pos_restaurant', 'payment_method_ids']
+        return ['module_pos_restaurant', 'payment_method_ids', 'active']
 
     def unlink(self):
         # Delete the pos.config records first then delete the sequences linked to them
@@ -1215,7 +1228,7 @@ class PosConfig(models.Model):
 
     def _get_available_pricelists(self):
         self.ensure_one()
-        return self.available_pricelist_ids if self.use_pricelist else self.pricelist_id
+        return self.available_pricelist_ids + self.pricelist_id if self.use_pricelist else self.pricelist_id
 
     def _env_with_clean_context(self):
         safe_context = {}

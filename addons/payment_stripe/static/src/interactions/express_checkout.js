@@ -18,7 +18,7 @@ patch(ExpressCheckout.prototype, {
      */
     _getOrderDetails(deliveryAmount, amountFreeShipping) {
         const pending = this.paymentContext['shippingInfoRequired'] && deliveryAmount === undefined;
-        const minorAmount = parseInt(this.paymentContext['minorAmount']);
+        const minorAmount = parseInt(this.paymentContext['minorAmount'] || 0);
         const displayItems = [{
             label: _t("Your order"),
             amount: minorAmount,
@@ -176,6 +176,9 @@ patch(ExpressCheckout.prototype, {
                             state: ev.shippingAddress.region,
                         },
                     },
+                ));
+                this.paymentContext['minorAmount'] = await this.waitFor(rpc(
+                    this.paymentContext['shippingAddressUpdateRoute'] + '/compute_taxes',
                 ));
                 const { delivery_methods, delivery_discount_minor_amount } = availableCarriersData;
                 if (delivery_methods.length === 0) {

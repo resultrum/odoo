@@ -10,23 +10,24 @@
 # Marianna Ciofani, 2023
 # Sergio Zanchetta <primes2h@gmail.com>, 2023
 # "Dylan Kiss (dyki)" <dyki@odoo.com>, 2025.
-# "Marianna Ciofani (cima)" <cima@odoo.com>, 2025.
+# "Marianna Ciofani (cima)" <cima@odoo.com>, 2025, 2026.
+# Weblate <noreply-mt-weblate@weblate.org>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 16.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-08 18:37+0000\n"
-"PO-Revision-Date: 2025-10-16 08:57+0000\n"
+"POT-Creation-Date: 2026-02-27 18:36+0000\n"
+"PO-Revision-Date: 2026-02-27 14:41+0000\n"
 "Last-Translator: \"Marianna Ciofani (cima)\" <cima@odoo.com>\n"
-"Language-Team: Italian <https://translate.odoo.com/projects/odoo-19/mrp/it/>"
-"\n"
+"Language-Team: Italian <https://translate.odoo.com/projects/odoo-19/mrp/it/"
+">\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Plural-Forms: nplurals=3; plural=(n == 1) ? 0 : ((n != 0 && n % 1000000 == 0)"
-" ? 1 : 2);\n"
-"X-Generator: Weblate 5.12.2\n"
+"Plural-Forms: nplurals=3; plural=(n == 1) ? 0 : ((n != 0 && n % 1000000 == "
+"0) ? 1 : 2);\n"
+"X-Generator: Weblate 5.14.3\n"
 
 #. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_production__state
@@ -218,6 +219,12 @@ msgid "+ %d day(s)"
 msgstr "+ %d giorno/i"
 
 #. module: mrp
+#. odoo-python
+#: code:addons/mrp/models/stock_rule.py:0
+msgid "+ %s day(s)"
+msgstr "+ %s giorno(i)"
+
+#. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.mo_overview_content
 msgid "- Overview"
 msgstr "- Panoramica"
@@ -355,21 +362,20 @@ msgid ""
 "                                        <span class=\"o_annotation "
 "o_annotation_5 o_annotation_start position-absolute\">Select Operator</span>"
 msgstr ""
-"<span class="
-"\"o_annotation o_annotation_1 o_annotation_end position-absolute\""
-">Registrazione tempo</span>\n"
-"                                        <span class="
-"\"o_annotation o_annotation_2 o_annotation_end position-absolute\">Controllo "
-"qualità</span>\n"
-"                                        <span class="
-"\"o_annotation o_annotation_3 o_annotation_start position-absolute\">Ciclo "
-"di feedback</span>\n"
-"                                        <span class="
-"\"o_annotation o_annotation_4 o_annotation_start position-absolute\""
-">Registrazione materiali</span>\n"
-"                                        <span class="
-"\"o_annotation o_annotation_5 o_annotation_start position-absolute\""
-">Selezione operatore</span>"
+"<span class=\"o_annotation o_annotation_1 o_annotation_end position-"
+"absolute\">Registrazione tempo</span>\n"
+"                                        <span class=\"o_annotation "
+"o_annotation_2 o_annotation_end position-absolute\">Controllo qualità</"
+"span>\n"
+"                                        <span class=\"o_annotation "
+"o_annotation_3 o_annotation_start position-absolute\">Ciclo di feedback</"
+"span>\n"
+"                                        <span class=\"o_annotation "
+"o_annotation_4 o_annotation_start position-absolute\">Registrazione "
+"materiali</span>\n"
+"                                        <span class=\"o_annotation "
+"o_annotation_5 o_annotation_start position-absolute\">Selezione operatore</"
+"span>"
 
 #. module: mrp
 #: model_terms:ir.actions.act_window,help:mrp.mrp_routing_action
@@ -385,21 +391,16 @@ msgid ""
 "                    <span class=\"o_annotation o_annotation_5 "
 "o_annotation_start position-absolute\">Select Operator</span>"
 msgstr ""
-"<span class="
-"\"o_annotation o_annotation_1 o_annotation_end position-absolute\""
-">Registrazione tempo</span>\n"
-"                    <span class="
-"\"o_annotation o_annotation_2 o_annotation_end position-absolute\">Controllo "
-"qualità</span>\n"
-"                    <span class="
-"\"o_annotation o_annotation_3 o_annotation_start position-absolute\">Ciclo "
-"di feedback</span>\n"
-"                    <span class="
-"\"o_annotation o_annotation_4 o_annotation_start position-absolute\""
-">Registrazione materiali</span>\n"
-"                    <span class="
-"\"o_annotation o_annotation_5 o_annotation_start position-absolute\""
-">Selezione operatore</span>"
+"<span class=\"o_annotation o_annotation_1 o_annotation_end position-"
+"absolute\">Registrazione tempo</span>\n"
+"                    <span class=\"o_annotation o_annotation_2 "
+"o_annotation_end position-absolute\">Controllo qualità</span>\n"
+"                    <span class=\"o_annotation o_annotation_3 "
+"o_annotation_start position-absolute\">Ciclo di feedback</span>\n"
+"                    <span class=\"o_annotation o_annotation_4 "
+"o_annotation_start position-absolute\">Registrazione materiali</span>\n"
+"                    <span class=\"o_annotation o_annotation_5 "
+"o_annotation_start position-absolute\">Selezione operatore</span>"
 
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_bom_form_view
@@ -420,6 +421,11 @@ msgstr "<span class=\"o_stat_text\">Panoramica DiBa</span>"
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_production_form_view
 msgid "<span class=\"o_stat_text\">Child MO</span>"
 msgstr "<span class=\"o_stat_text\">OdP figlio</span>"
+
+#. module: mrp
+#: model_terms:ir.ui.view,arch_db:mrp.mrp_bom_form_view
+msgid "<span class=\"o_stat_text\">Copy Existing Operations</span>"
+msgstr ""
 
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_workcenter_view
@@ -518,10 +524,10 @@ msgid ""
 "                                    <span invisible=\"time_mode == "
 "'manual'\"> / last </span>"
 msgstr ""
-"<span invisible=\"time_mode == 'auto' and workorder_count != 0\""
-">minuti</span>\n"
-"                                    <span invisible=\"time_mode == 'manual'\""
-"> /ultimi </span>"
+"<span invisible=\"time_mode == 'auto' and workorder_count != 0\">minuti</"
+"span>\n"
+"                                    <span invisible=\"time_mode == "
+"'manual'\"> /ultimi </span>"
 
 #. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_routing_workcenter_form_view
@@ -1793,7 +1799,7 @@ msgstr "Ordine di disassemblaggio consumato"
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_bom_line__operation_id
 msgid "Consumed in Operation"
-msgstr "Consumato nell'operazione"
+msgstr "Utilizzato nell'operazione"
 
 #. module: mrp
 #: model:ir.model.fields,field_description:mrp.field_mrp_consumption_warning__consumption
@@ -3943,6 +3949,12 @@ msgid "No Backorder"
 msgstr "Nessun ordine residuo"
 
 #. module: mrp
+#. odoo-python
+#: code:addons/mrp/models/stock_rule.py:0
+msgid "No BoM Found"
+msgstr "Nessuna DiBa trovata"
+
+#. module: mrp
 #: model_terms:ir.actions.act_window,help:mrp.mrp_routing_action
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_bom_form_view
 msgid "No Operations Yet !"
@@ -5435,6 +5447,11 @@ msgid "Show Bom Tab"
 msgstr "Mostra scheda DiBa"
 
 #. module: mrp
+#: model:ir.model.fields,field_description:mrp.field_mrp_bom__show_copy_operations_button
+msgid "Show Copy Operations Button"
+msgstr ""
+
+#. module: mrp
 #: model_terms:ir.ui.view,arch_db:mrp.mrp_production_form_view
 msgid "Show Details"
 msgstr "Mostra dettagli"
@@ -5803,6 +5820,13 @@ msgstr ""
 "Campo tecnico per controllare quando è possibile annullare la prenotazione."
 
 #. module: mrp
+#: model:ir.model.fields,help:mrp.field_mrp_bom__show_copy_operations_button
+msgid ""
+"Technical field used to control the visibility of the 'Copy Existing "
+"Operations' button."
+msgstr ""
+
+#. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_production__is_outdated_bom
 msgid "The BoM has been updated since creation of the MO"
 msgstr ""
@@ -6008,6 +6032,12 @@ msgid "There is no defined calendar on workcenter %s."
 msgstr "Non è stato definito nessun calendario per il centro di lavoro %s."
 
 #. module: mrp
+#. odoo-python
+#: code:addons/mrp/wizard/mrp_production_serial_numbers.py:0
+msgid "There is no serial numbers to apply."
+msgstr ""
+
+#. module: mrp
 #: model_terms:ir.actions.act_window,help:mrp.action_mrp_unbuild_moves
 msgid "There's no product move yet"
 msgstr "Ancora nessun movimento di prodotto"
@@ -6127,7 +6157,7 @@ msgstr "Tempo in minuti per la pulizia."
 #. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_workcenter_capacity__time_start
 msgid "Time in minutes for the setup."
-msgstr "Tempo in minuti per l'avviao"
+msgstr "Tempo in minuti per l'avvio"
 
 #. module: mrp
 #: model:ir.model.fields,help:mrp.field_mrp_routing_workcenter__time_cycle_manual
@@ -7065,6 +7095,12 @@ msgstr "È possibile unire soltanto produzioni con lo stesso stato."
 
 #. module: mrp
 #. odoo-python
+#: code:addons/mrp/models/mrp_production.py:0
+msgid "You cannot cancel a manufacturing order that is already done."
+msgstr "Non è possibile annullare un ordine di produzione già effettuato."
+
+#. module: mrp
+#. odoo-python
 #: code:addons/mrp/models/mrp_workorder.py:0
 msgid ""
 "You cannot change the quantity produced of a work order that is in done or "
@@ -7093,6 +7129,12 @@ msgstr "Da qui è impossibile creare una nuova distinta base."
 #: code:addons/mrp/models/mrp_workorder.py:0
 msgid "You cannot create cyclic dependency."
 msgstr "Non si può creare una dipendenza ciclica."
+
+#. module: mrp
+#. odoo-python
+#: code:addons/mrp/models/mrp_production.py:0
+msgid "You cannot delete a manufacturing order that is already done."
+msgstr "Non è possibile eliminare un ordine di produzione già effettuato."
 
 #. module: mrp
 #. odoo-python

@@ -148,8 +148,6 @@ ul.o_checklist {
     >li {
         list-style: none;
         position: relative;
-        margin-left: $o-checklist-margin-left;
-        margin-right: $o-checklist-margin-left;
 
         &:not(.oe-nested)::before {
             content: '';
@@ -734,7 +732,7 @@ pre {
 
     &.o_bg_img_opt_repeat {
         background-size: auto;
-        background-repeat: repeat;
+        background-repeat: repeat !important;
     }
     &.o_bg_img_center {
         background-position: center;

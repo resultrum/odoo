@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-08 18:37+0000\n"
-"PO-Revision-Date: 2025-09-16 02:33+0000\n"
+"POT-Creation-Date: 2026-02-13 18:35+0000\n"
+"PO-Revision-Date: 2025-10-22 11:17+0000\n"
 "Last-Translator: \"Dylan Kiss (dyki)\" <dyki@odoo.com>\n"
 "Language-Team: Russian <https://translate.odoo.com/projects/odoo-19/pos_sale/"
 "ru/>\n"
@@ -54,12 +54,14 @@ msgstr "Был создан новый заказ."
 #. module: pos_sale
 #: model:ir.model.fields,field_description:pos_sale.field_sale_order__amount_unpaid
 msgid "Amount To Pay In POS"
-msgstr ""
+msgstr "Сумма к оплате в POS"
 
 #. module: pos_sale
 #: model:ir.model.fields,help:pos_sale.field_sale_order__amount_unpaid
 msgid "Amount left to pay in POS to avoid double payment or double invoicing."
 msgstr ""
+"Остаток суммы к оплате в POS, чтобы избежать двойной оплаты или повторного "
+"выставления счета."
 
 #. module: pos_sale
 #. odoo-javascript
@@ -101,10 +103,11 @@ msgstr "Доставлено из"
 #. module: pos_sale
 #: model:ir.model.fields,field_description:pos_sale.field_pos_order_line__qty_delivered
 msgid "Delivery Quantity"
-msgstr ""
+msgstr "Доставка Количество"
 
 #. module: pos_sale
 #: model:ir.model.fields,field_description:pos_sale.field_account_move__display_name
+#: model:ir.model.fields,field_description:pos_sale.field_account_move_line__display_name
 #: model:ir.model.fields,field_description:pos_sale.field_crm_team__display_name
 #: model:ir.model.fields,field_description:pos_sale.field_pos_config__display_name
 #: model:ir.model.fields,field_description:pos_sale.field_pos_order__display_name
@@ -156,6 +159,8 @@ msgid ""
 "Down payment (ref: %(order_reference)s on \n"
 " %(date)s)"
 msgstr ""
+"Предоплата (по заказу: %(order_reference)s от \n"
+" %(date)s)"
 
 #. module: pos_sale
 #. odoo-javascript
@@ -170,6 +175,7 @@ msgstr "От"
 
 #. module: pos_sale
 #: model:ir.model.fields,field_description:pos_sale.field_account_move__id
+#: model:ir.model.fields,field_description:pos_sale.field_account_move_line__id
 #: model:ir.model.fields,field_description:pos_sale.field_crm_team__id
 #: model:ir.model.fields,field_description:pos_sale.field_pos_config__id
 #: model:ir.model.fields,field_description:pos_sale.field_pos_order__id
@@ -204,6 +210,11 @@ msgstr ""
 #. module: pos_sale
 #: model:ir.model,name:pos_sale.model_account_move
 msgid "Journal Entry"
+msgstr ""
+
+#. module: pos_sale
+#: model:ir.model,name:pos_sale.model_account_move_line
+msgid "Journal Item"
 msgstr ""
 
 #. module: pos_sale
@@ -288,7 +299,7 @@ msgstr "Pos Количество Заказов"
 #. module: pos_sale
 #: model:ir.model.fields.selection,name:pos_sale.selection__sale_report__state__done
 msgid "Posted"
-msgstr ""
+msgstr "Опубликовано"
 
 #. module: pos_sale
 #: model:ir.model,name:pos_sale.model_product_template
@@ -305,7 +316,7 @@ msgstr "Предложение/Заказ"
 #. odoo-javascript
 #: code:addons/pos_sale/static/src/app/services/pos_store.js:0
 msgid "SN/Lots Loading"
-msgstr "SN/Lots Loading"
+msgstr "Загрузка серийных номеров/партий"
 
 #. module: pos_sale
 #. odoo-javascript
@@ -416,6 +427,8 @@ msgid ""
 "Transferred<br/>\n"
 "                                from Sale"
 msgstr ""
+"Перенесено<br/>\n"
+"                                из модуля Продажи"
 
 #. module: pos_sale
 #: model_terms:ir.ui.view,arch_db:pos_sale.view_order_form_inherit_pos_sale
