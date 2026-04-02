@@ -82,11 +82,17 @@ class PosOrder(models.Model):
             config._notify('ORDER_STATE_CHANGED', {})
 
     def _send_self_order_receipt(self):
-        if self.email:
-            try:
-                self.action_send_self_order_receipt(self.email, self.preset_id.mail_template_id.id, False, False)
-            except UserError as e:
-                _logger.warning("Error while sending email: %s", e.args[0])
+        self.ensure_one()
+        if (
+            self.state not in ('paid', 'done')
+            or not self.email
+            or not self.preset_id.mail_template_id
+        ):
+            return
+        try:
+            self.action_send_self_order_receipt(self.email, self.preset_id.mail_template_id.id, False, False)
+        except UserError as e:
+            _logger.warning("Error while sending email: %s", e.args[0])
 
     def action_send_self_order_receipt(self, email, mail_template_id, ticket_image, basic_image):
         self.ensure_one()
@@ -109,6 +115,7 @@ class PosOrder(models.Model):
             }
         })
         if payment_result == 'Success':
+            self._send_self_order_receipt()
             self._send_order()
 
     def _load_pos_self_data_fields(self, config):
@@ -173,11 +180,8 @@ class PosOrder(models.Model):
 
             if device_type == 'kiosk':
                 floating_order_name = f"Table tracker {order['table_stand_number']}" if order.get('table_stand_number') else tracking_number
-
-            if not order.get('floating_order_name') and table:
-                floating_order_name = f"Self-Order T {table.table_number}"
-            elif not order.get('floating_order_name'):
-                floating_order_name = f"Self-Order {tracking_number}"
+            elif not floating_order_name:
+                floating_order_name = f"Self-Order T {table.table_number}" if table else f"Self-Order {tracking_number}"
 
             tracking_number = f"{prefix}{tracking_number}"
         else:
@@ -322,9 +326,27 @@ class PosOrder(models.Model):
             total_price = price_unit + price_extra + child.combo_item_id.extra_price
             child.price_unit = total_price
 
-        for child in child_line_extra:
+        extra_original_total = 0
+        if remaining_total and child_line_extra:
+            extra_original_total = sum(
+                line.combo_item_id.combo_id.base_price * line.qty
+                for line in child_line_extra
+            ) or 1
+
+        for index, child in enumerate(child_line_extra):
             combo_item = child.combo_item_id
             price_unit = currency.round(combo_item.combo_id.base_price)
+
+            if extra_original_total:
+                remaining_proportion = currency.round(
+                    combo_item.combo_id.base_price * parent_lst_price / extra_original_total
+                )
+                price_unit += remaining_proportion
+                remaining_total -= remaining_proportion * child.qty
+
+                if index == len(child_line_extra) - 1:
+                    price_unit += remaining_total / child.qty
+
             selected_attributes = child.attribute_value_ids
             price_extra = sum(attr.price_extra for attr in selected_attributes)
             total_price = price_unit + price_extra + child.combo_item_id.extra_price
