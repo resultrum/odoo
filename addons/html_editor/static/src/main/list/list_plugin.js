@@ -2,6 +2,7 @@ import { Plugin } from "@html_editor/plugin";
 import { closestBlock, isBlock } from "@html_editor/utils/blocks";
 import {
     removeClass,
+    removeEmptyTextNodes,
     removeStyle,
     toggleClass,
     unwrapContents,
@@ -14,6 +15,7 @@ import {
     isListElement,
     isListItemElement,
     isParagraphRelatedElement,
+    isPhrasingContent,
     isProtected,
     isProtecting,
     isShrunkBlock,
@@ -344,7 +346,7 @@ export class ListPlugin extends Plugin {
             return this.baseContainerToList(element, mode);
         }
         // @todo @phoenix: check for callbacks registered as resources instead?
-        if (element.matches("td, th, li.nav-item")) {
+        if (element.matches("td, th, li.nav-item, blockquote")) {
             return this.blockContentsToList(element, mode);
         }
         let list;
@@ -495,15 +497,14 @@ export class ListPlugin extends Plugin {
         if (!isOrphan) {
             return;
         }
-        if (element.children.length && [...element.children].every(isBlock)) {
-            // Unwrap <li> if each of its children is a block element.
-            unwrapContents(element);
-        } else {
-            // Otherwise, wrap its content in a new <p> element.
-            const paragraph = this.dependencies.baseContainer.createBaseContainer();
-            element.replaceWith(paragraph);
-            paragraph.replaceChildren(...element.childNodes);
-        }
+        const cursors = this.dependencies.selection.preserveSelection();
+        wrapInlinesInBlocks(element, {
+            baseContainerNodeName: this.dependencies.baseContainer.getDefaultNodeName(),
+            cursors,
+        });
+        cursors.update(callbacksForCursorUpdate.unwrap(element));
+        unwrapContents(element);
+        cursors.restore();
     }
 
     mergeSimilarLists(element) {
@@ -551,7 +552,8 @@ export class ListPlugin extends Plugin {
 
         if (
             [...element.children].some(
-                (child) => isBlock(child) && !this.dependencies.split.isUnsplittable(child)
+                (child) =>
+                    !isPhrasingContent(child) && !this.dependencies.split.isUnsplittable(child)
             )
         ) {
             const cursors = this.dependencies.selection.preserveSelection();
@@ -1109,6 +1111,9 @@ export class ListPlugin extends Plugin {
         }
         const cursors = this.dependencies.selection.preserveSelection();
         for (const listItem of listItems) {
+            // Remove empty text nodes without breaking the current selection.
+            removeEmptyTextNodes(listItem, cursors);
+
             if (this.dependencies.selection.areNodeContentsFullySelected(listItem)) {
                 for (const node of [
                     listItem,
@@ -1185,6 +1190,9 @@ export class ListPlugin extends Plugin {
                 continue;
             }
 
+            // Remove empty text nodes without breaking the current selection.
+            removeEmptyTextNodes(listItem, cursors);
+
             if (this.dependencies.selection.areNodeContentsFullySelected(listItem)) {
                 for (const node of [
                     listItem,
@@ -1241,7 +1249,7 @@ export class ListPlugin extends Plugin {
      * @param {HTMLElement} list - The `<ul>` element used to determine the parent list and marker width.
      */
     adjustListPadding(list) {
-        if (!isListElement(list)) {
+        if (!isListElement(list) || ![...list.children].some(getFontSizeOrClass)) {
             return;
         }
         list.style.removeProperty("padding-inline-start");
