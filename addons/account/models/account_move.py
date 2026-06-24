@@ -2706,6 +2706,11 @@ class AccountMove(models.Model):
     # -------------------------------------------------------------------------
     # EARLY PAYMENT DISCOUNT
     # -------------------------------------------------------------------------
+
+    def _is_early_payment_unmatched(self, payment_terms):
+        self.ensure_one()
+        return not (payment_terms.sudo().matched_debit_ids + payment_terms.sudo().matched_credit_ids)
+
     def _is_eligible_for_early_payment_discount(self, currency, reference_date):
         self.ensure_one()
         payment_terms = self.line_ids.filtered(lambda line: line.display_type == 'payment_term')
@@ -2721,7 +2726,7 @@ class AccountMove(models.Model):
                     reference_date <= existing_discount_date
                 )
             ) \
-            and not (payment_terms.sudo().matched_debit_ids + payment_terms.sudo().matched_credit_ids)
+            and self._is_early_payment_unmatched(payment_terms)
 
     def _early_payment_discount_move_types(self):
         return ('out_invoice', 'out_receipt', 'in_invoice', 'in_receipt')

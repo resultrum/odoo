@@ -3385,6 +3385,10 @@ class AccountMoveLine(models.Model):
     # INSTALLMENTS
     # -------------------------------------------------------------------------
 
+    def _get_installments_data_discount(self):
+        self.ensure_one()
+        return self.discount_amount_currency, self.discount_balance
+
     def _get_installments_data(self, payment_currency=None, payment_date=None, next_payment_date=None):
         move = self.move_id
         move.ensure_one()
@@ -3417,13 +3421,14 @@ class AccountMoveLine(models.Model):
             # Early payment discount.
             # In that case, we want to report the difference of the epd and display it on the UI.
             if move._is_eligible_for_early_payment_discount(payment_currency or line.currency_id, payment_date):
+                discount_amount_currency, discount_balance = line._get_installments_data_discount()
                 installment.update({
-                    'amount_residual_currency': line.discount_amount_currency,
-                    'amount_residual': line.discount_balance,
-                    'amount_residual_currency_unsigned': -sign * line.discount_amount_currency,
-                    'amount_residual_unsigned': -sign * line.discount_balance,
-                    'discount_amount_currency': line.amount_currency - line.discount_amount_currency,
-                    'discount_amount': line.balance - line.discount_balance,
+                    'amount_residual_currency': discount_amount_currency,
+                    'amount_residual': discount_balance,
+                    'amount_residual_currency_unsigned': -sign * discount_amount_currency,
+                    'amount_residual_unsigned': -sign * discount_balance,
+                    'discount_amount_currency': line.amount_currency - discount_amount_currency,
+                    'discount_amount': line.balance - discount_balance,
                     'type': 'early_payment_discount',
                 })
                 continue
