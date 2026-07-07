@@ -77,7 +77,7 @@ class HrAttendance(models.Model):
                                            ('auto_check_out', 'Automatic Check-Out')],
                                 readonly=True,
                                 default='manual')
-    expected_hours = fields.Float(string="Theoretical Hours", compute="_compute_expected_hours", store=True, aggregator="sum")
+    expected_hours = fields.Float(string="Regular Hours", compute="_compute_expected_hours", store=True, aggregator="sum")
     device_tracking_enabled = fields.Boolean(related="employee_id.company_id.attendance_device_tracking")
     linked_overtime_ids = fields.Many2many('hr.attendance.overtime.line', compute='_compute_linked_overtime_ids', readonly=False)
 
@@ -284,17 +284,33 @@ class HrAttendance(models.Model):
 
             domain_list.append(Domain.AND([
                 Domain('employee_id', '=', employee.id),
-                Domain('date', '<=', date_to),
-                Domain('date', '>=', date_from),
+                Domain('check_in', '<=', datetime.combine(date_to, datetime.max.time()).replace(tzinfo=tz).astimezone(utc).replace(tzinfo=None)),
+                Domain('check_out', '>=', datetime.combine(date_from, datetime.min.time()).replace(tzinfo=tz).astimezone(utc).replace(tzinfo=None)),
             ]))
         if not domain_list:
             return Domain.FALSE
         return Domain.OR(domain_list) if len(domain_list) > 1 else domain_list[0]
 
+    def _get_overtime_domain_from_attendance_domain(self, attendance_domain):
+        overtime_domain = []
+        for leaf in attendance_domain:
+            if isinstance(leaf, (list, tuple)) and len(leaf) == 3:
+                field, operator, value = leaf
+                if field == 'check_in':
+                    field = 'time_start'
+                elif field == 'check_out':
+                    field = 'time_stop'
+                overtime_domain.append((field, operator, value))
+            else:
+                overtime_domain.append(leaf)
+        return overtime_domain
+
     def _update_overtime(self, attendance_domain=None):
         if not attendance_domain:
             attendance_domain = self._get_overtimes_to_update_domain()
-        all_overtime_lines = self.env['hr.attendance.overtime.line'].search(attendance_domain)
+
+        overtime_domain = self._get_overtime_domain_from_attendance_domain(attendance_domain)
+        all_overtime_lines = self.env['hr.attendance.overtime.line'].search(overtime_domain)
         manual_overtimes = set(all_overtime_lines.filtered(
             lambda l: l.manual_duration != l.duration or l.status == 'to_approve'
         ).mapped(lambda l: (l.employee_id.id, l.date)))
@@ -676,7 +692,7 @@ class HrAttendance(models.Model):
         result = {}
         for attendance in self:
             localized_start, localized_end = attendance._get_localized_times()
-            result[attendance] = list(rrule(DAILY, dtstart=localized_start, until=localized_end))
+            result[attendance] = list(rrule(DAILY, dtstart=localized_start.date(), until=localized_end.date()))
         return result
 
     def _get_attendance_by_periods_by_employee(self):

@@ -47,7 +47,7 @@ msgstr ""
 "Project-Id-Version: Odoo Server 16.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-24 14:12+0000\n"
-"PO-Revision-Date: 2026-05-23 09:34+0000\n"
+"PO-Revision-Date: 2026-06-26 10:30+0000\n"
 "Last-Translator: Saara Hakanen <sahak@odoo.com>\n"
 "Language-Team: Finnish <https://translate.odoo.com/projects/odoo-19/base/fi/>"
 "\n"
@@ -56,7 +56,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.6.1\n"
 
 #. module: base
 #: model:ir.module.module,description:base.module_l10n_at_reports
@@ -10943,11 +10943,12 @@ msgstr ""
 "Lähetä lähetyksesi Starshipitin kautta ja seuraa niitä verkossa\n"
 "=======================================================\n"
 "\n"
-"Starshipit on johtava integroitujen lähetys- ja seurantaratkaisujen tarjoaja "
-"kasvaville verkkokaupassa toimiville yrityksille.\n"
-"Integroituu saumattomasti useiden toimitusyritysten ja alustojen kanssa,\n"
-"voit virtaviivaistaa toimitusprosessin jokaisen vaiheen,\n"
-"vähentää käsittelyaikaa ja parantaa asiakaskokemusta.\n"
+"Starshipit on johtava integroitujen lähetys- ja seurantaratkaisujen "
+"palveluntarjoaja kasvaville verkkokaupoille.\n"
+"Integroituu saumattomasti useiden tavarantoimitusyritysten ja -alustojen "
+"kanssa.\n"
+"Voit virtaviivaistaa toimitusprosessin jokaisen vaiheen,\n"
+"vähentää käsittelyaikaa sekä parantaa asiakaskokemusta.\n"
 
 #. module: base
 #: model:ir.module.module,description:base.module_delivery_bpost
@@ -12086,24 +12087,22 @@ msgstr ""
 "Tämä on perusmoduuli tuotteiden ja hinnastojen hallintaan Odoossa.\n"
 "========================================================================\n"
 "\n"
-"Tuotteet tukevat variantteja, eri hinnoittelutapoja ja toimittajien "
-"tietoja,\n"
-"varasto-ohjautuva tuotantoa (MTS)/tilauksesta valmistus (MTO), eri "
-"mittayksiköitä, pakkauksia ja ominaisuuksia.\n"
+"Tuotteet tukevat variantteja, eri hinnoittelutapoja, toimittajatietoja,\n"
+"varasto-/tilaus-ohjautuvaa tuotantoa sekä eri mittayksiköitä, pakkauksia ja "
+"ominaisuuksia.\n"
 "\n"
 "Hinnastot tukevat:\n"
 "-------------------\n"
-"    * Monitasoisia alennuksia (tuotteittain, kategorioittain, määrien "
-"mukaan)\n"
+"    * Monitasoisia alennuksia (tuotteen, kategorian tai määrän perusteella)\n"
 "    * Hinnan laskemista eri kriteerien perusteella:\n"
-"        * Muu hinnastoa\n"
-"        * Kustannushintaa\n"
-"        * Listahintaa\n"
-"        * Myyjän hintaa\n"
+"        * Toinen hinnasto\n"
+"        * Hankintahinta\n"
+"        * Listahinta\n"
+"        * Myyjän hinta\n"
 "\n"
 "Hinnastot tuotteittain ja/tai kumppaneittain.\n"
 "\n"
-"Tuotetarrojen tulostaminen viivakoodilla.\n"
+"Tuote-etikettien tulostaminen viivakoodilla.\n"
 
 #. module: base
 #: model:ir.module.module,description:base.module_l10n_rs
@@ -15729,20 +15728,20 @@ msgid ""
 "* Analysis graph for costs\n"
 msgstr ""
 "\n"
-"Kulkuneuvot, leasing, vakuutukset, kustannukset\n"
+"Ajoneuvot, leasing, vakuutukset, kustannukset\n"
 "==================================\n"
-"Tämän moduulin avulla Odoo auttaa sinua hallinnoimaan kaikkia "
-"kulkuneuvojasi, \n"
+"Tämän moduulin kautta Odoo auttaa sinua hallinnoimaan kaikkia ajoneuvojasi, "
+"\n"
 "niihin liittyviä sopimuksia sekä palveluita, kustannuksia\n"
-"sekä monia muita ominaisuuksia, jotka ovat välttämättömiä ajokaluston\n"
+"sekä monia muita ominaisuuksia, jotka ovat välttämättömiä kuljetuskalustosi\n"
 "hallinnoimiseksi\n"
 "\n"
-"Keskeisimmät ominaisuudet\n"
+"Keskeiset ominaisuudet\n"
 "-------------\n"
-"* Ajoneuvojen lisääminen kuljetuskalustoosi\n"
-"* Ajoneuvosopimusten hallinta\n"
+"* Lisää ajoneuvoja kuljetuskalustoosi\n"
+"* Hallinnoi ajoneuvojen sopimuksia\n"
 "* Muistutus, kun sopimus saavuttaa eräpäivänsä\n"
-"* Lisää palveluita sekä matkamittarin arvot kaikille ajoneuvoille\n"
+"* Lisää palveluita sekä matkamittarin arvoja kaikille ajoneuvoille\n"
 "* Näytä kaikki ajoneuvoon tai palvelutyyppiin liittyvät kustannukset\n"
 "* Kustannusten analyysikaavio\n"
 
@@ -16418,7 +16417,7 @@ msgstr "<code>dateuntil</code> (Python-moduuli)"
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_server_action_form
 msgid "<code>env</code>: environment on which the action is triggered"
-msgstr "<code>env</code>: ympäristö, jossa toiminto käynnistetään/laukaistaan"
+msgstr "<code>env</code>: ympäristö, jossa toiminto käynnistetään"
 
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_server_action_form
@@ -16450,7 +16449,7 @@ msgstr ""
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_server_action_form
 msgid "<code>record</code>: record on which the action is triggered"
-msgstr "<code>record</code>: kirjaus, johon toiminto kohdistuu"
+msgstr "<code>record</code>: tietue, jossa toiminto käynnistetään"
 
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_server_action_form
@@ -23312,7 +23311,7 @@ msgstr "CRM"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_data_merge_crm
 msgid "CRM Deduplication"
-msgstr "CRM-järjestelmän kaksoiskappaleiden poisto"
+msgstr "CRM-kaksoiskappaleiden poisto"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_gamification_sale_crm
@@ -23337,7 +23336,7 @@ msgstr "CRM:n tilauksen myyminen"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_crm_enterprise
 msgid "CRM enterprise"
-msgstr "CRM-järjestelmä, Yritys"
+msgstr "CRM Yritys"
 
 #. module: base
 #: model:ir.module.category,name:base.module_category_crm_in_marketing_automation
@@ -28875,7 +28874,7 @@ msgstr "Suorita joka"
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.ir_cron_view_search
 msgid "Execution"
-msgstr "Suorittaminen"
+msgstr "Toteutus"
 
 #. module: base
 #: model:ir.model.fields.selection,name:base.selection__report_paperformat__format__executive
@@ -29247,7 +29246,7 @@ msgstr "FEDEX-toimipisteet verkkosivun toimitusta varten"
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_mail_server__from_filter
 msgid "FROM Filtering"
-msgstr "ALKAEN-suodatus"
+msgstr "Lähettäjän suodattaminen"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_industry_fsm_sms
@@ -35011,7 +35010,7 @@ msgstr "Pääsovellukset"
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_sequence_date_range__sequence_id
 msgid "Main Sequence"
-msgstr "Pääjärjestys"
+msgstr "Pääsekvenssi"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_res_partner__main_user_id
@@ -35842,7 +35841,7 @@ msgstr "Yhdistä kumppanirivi"
 #. module: base
 #: model:ir.model,name:base.model_base_partner_merge_automatic_wizard
 msgid "Merge Partner Wizard"
-msgstr "Kumppanin yhdistämistyökalu"
+msgstr "Ohjattu kumppaneiden yhdistämistoiminto"
 
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.base_partner_merge_automatic_wizard_form
@@ -44889,7 +44888,7 @@ msgstr "Aikataulutetut toiminnot"
 #: model:ir.actions.act_window,name:base.ir_cron_trigger_action
 #: model:ir.ui.menu,name:base.ir_cron_trigger_menu
 msgid "Scheduled Actions Triggers"
-msgstr "Aikataulutetut toiminnot laukaisijat"
+msgstr "Aikataulutettujen toimintojen laukaisijat"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_cron__user_id
@@ -45403,12 +45402,12 @@ msgstr "Erotin, jota käytetään osoitteen erottamiseen display_name-nimestä."
 #: model_terms:ir.ui.view,arch_db:base.view_sequence_search
 #: model_terms:ir.ui.view,arch_db:base.view_view_tree
 msgid "Sequence"
-msgstr "Järjestys"
+msgstr "Sekvenssi"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_sequence__code
 msgid "Sequence Code"
-msgstr "Järjestyskoodi"
+msgstr "Sekvenssikoodi"
 
 #. module: base
 #: model:ir.model,name:base.model_ir_sequence_date_range
@@ -45418,7 +45417,7 @@ msgstr "Järjestys päivämääräalue"
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_sequence__padding
 msgid "Sequence Size"
-msgstr "Jakson koko"
+msgstr "Sekvenssin koko"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_actions_server__sequence_id
@@ -45433,12 +45432,12 @@ msgstr "Käytettävä sekvenssi"
 #: model_terms:ir.ui.view,arch_db:base.sequence_view_tree
 #: model_terms:ir.ui.view,arch_db:base.view_sequence_search
 msgid "Sequences"
-msgstr "Sarjat"
+msgstr "Sekvenssit"
 
 #. module: base
 #: model:ir.ui.menu,name:base.next_id_5
 msgid "Sequences & Identifiers"
-msgstr "Järjestysluvut ja tunnisteet"
+msgstr "Sekvenssit & tunnisteet"
 
 #. module: base
 #: model:res.country,name:base.rs
@@ -45976,12 +45975,12 @@ msgstr ""
 #: model:ir.module.category,name:base.module_category_marketing_social
 #: model:ir.module.category,name:base.module_category_social
 msgid "Social"
-msgstr "Some"
+msgstr "Sosiaalinen"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_social_demo
 msgid "Social Demo Module"
-msgstr "Some-demo moduuli"
+msgstr "Sosiaalinen demomoduuli"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_social_facebook
@@ -46875,7 +46874,7 @@ msgstr "Jäsenyys-/kumppanuustilaukset "
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_sequence__date_range_ids
 msgid "Subsequences"
-msgstr "Seuraukset"
+msgstr "Osasekvenssit"
 
 #. module: base
 #: model:res.country,name:base.sd
@@ -49888,7 +49887,7 @@ msgstr ""
 #. module: base
 #: model:ir.model,name:base.model_ir_cron_trigger
 msgid "Triggered actions"
-msgstr "Liipaisintoimenpiteet"
+msgstr "Laukaistut toiminnot"
 
 #. module: base
 #: model:res.country,name:base.tt
@@ -50006,17 +50005,19 @@ msgid ""
 "actions\n"
 msgstr ""
 "Palvelintoiminnon tyyppi. Saatavilla seuraavat arvot:\n"
-"- 'Päivitä tietue': päivitä tietueen arvot\n"
+"- 'Päivitä kirjaus': päivittää kirjauksen arvot\n"
 "- 'Luo toimenpide': luo toimenpiteen (Viestintä)\n"
-"- 'Lähetä sähköposti': lähetä viesti, huomautus tai sähköposti (Viestintä)\n"
-"- 'Lähetä tekstiviesti': lähetä tekstiviestejä, kirjaa ne asiakirjoihin "
-"(Tekstiviesti)- 'Lisää/Poista seuraajia': lisää tai poista tietueen "
-"seuraajia (Viestintä)\n"
-"- 'Luo tietue': luo uusi tietue uusilla arvoilla\n"
-"- 'Suorita koodi': Python-koodin pätkä, joka suoritetaan\n"
-"- 'Lähetä Webhook-ilmoitus': lähetä POST-pyyntö ulkoiseen järjestelmään, "
-"joka tunnetaan myös nimellä Webhook\n"
-"- 'Monitoiminnot': Määritä toiminto, joka käynnistää useita muita "
+"- 'Lähetä sähköposti': lähettää viestin, huomautuksen tai sähköpostin "
+"(Viestintä)\n"
+"- 'Lähetä tekstiviesti': lähettää tekstiviestejä, kirjaa ne asiakirjoihin "
+"(Tekstiviesti)\n"
+"- 'Lisää/poista seuraajia': lisää tai poistaa tietueen seuraajia (Viestintä)"
+"\n"
+"- 'Luo kirjaus': luo uuden kirjauksen uusilla arvoilla\n"
+"- 'Suorita koodi': pätkä Python-koodia, joka suoritetaan\n"
+"- 'Lähetä Webhook-ilmoitus': lähettää JULKAISU-pyynnön ulkoiseen "
+"järjestelmään, joka tunnetaan myös nimellä Webhook\n"
+"- 'Useita toimintoja': määrittää toiminnon, joka laukaisee useita muita "
 "palvelintoimintoja\n"
 
 #. module: base

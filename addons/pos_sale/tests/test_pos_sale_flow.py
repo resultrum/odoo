@@ -201,7 +201,7 @@ class TestPoSSale(TestPointOfSaleHttpCommon):
         self.main_pos_config.open_ui()
         self.start_pos_tour('PosRefundDownpayment', login="accountman")
         self.assertEqual(len(sale_order.order_line), 4)
-        self.assertEqual(sale_order.order_line[2].qty_invoiced, 1)
+        self.assertEqual(sale_order.order_line[2].qty_invoiced, 0)
         self.assertEqual(sale_order.order_line[3].qty_invoiced, -1)
 
     def test_settle_order_unreserve_order_lines(self):
@@ -1031,6 +1031,9 @@ class TestPoSSale(TestPointOfSaleHttpCommon):
             final_invoice_downpayment_line._get_downpayment_lines(),
             downpayment_invoice.invoice_line_ids,
         )
+
+        final_invoice_downpayment_line.move_id.action_post()
+        self.assertEqual(sale_order.amount_to_invoice, 0.0)
 
         # CASE 2: downpayment generated in POS, invoice settled in POS
         sale_order = sale_orders[0]
@@ -2116,6 +2119,7 @@ class TestPoSSale(TestPointOfSaleHttpCommon):
            'shipping_date': '2023-01-01',
         }
         data = self.env['pos.order'].sync_from_ui([pos_order_refund])
+        self.assertEqual(sale_order.order_line.qty_invoiced, 2)
         pos_order_refund_id = data['pos.order'][1]['id']
         pos_order_refund_record = self.env['pos.order'].browse(pos_order_refund_id)
         self.assertEqual(sale_order.order_line.qty_delivered, 5)
@@ -2264,6 +2268,213 @@ class TestPoSSale(TestPointOfSaleHttpCommon):
 
         self.main_pos_config.open_ui()
         self.start_pos_tour('test_settle_so_custom_attribute_value', login="accountman")
+
+    def test_settle_so_archived_attribute(self):
+        attr = self.env['product.attribute'].create({
+            'name': 'Archived Size',
+            'create_variant': 'no_variant',
+        })
+        attr_values = self.env['product.attribute.value'].create([
+            {'name': 'S', 'attribute_id': attr.id},
+            {'name': 'M', 'attribute_id': attr.id},
+        ])
+        product_tmpl = self.env['product.template'].create({
+            'name': 'Archived Attr Product',
+            'available_in_pos': True,
+            'type': 'service',
+            'list_price': 10.0,
+            'taxes_id': [],
+            'attribute_line_ids': [Command.create({
+                'attribute_id': attr.id,
+                'value_ids': [Command.set(attr_values.ids)],
+            })],
+        })
+
+        sale_order = self.env['sale.order'].create({
+            'partner_id': self.env['res.partner'].create({'name': 'Test Partner'}).id,
+            'order_line': [Command.create({
+                'product_id': product_tmpl.product_variant_ids[0].id,
+                'product_uom_qty': 1,
+                'price_unit': 10.0,
+            })],
+        })
+        sale_order.action_confirm()
+
+        # Simulate what Odoo does when you delete an attribute line that is already
+        # referenced by a sale order: it archives the line instead of deleting it.
+        attr_line = product_tmpl.with_context(active_test=False).attribute_line_ids
+        attr_line.write({'active': False})
+
+        # Also archive the product.attribute itself (worst case: triggers the crash
+        # because the archived attribute won't be loaded at PoS startup).
+        attr.write({'active': False})
+
+        self.main_pos_config.open_ui()
+        self.start_pos_tour('test_settle_so_archived_attribute', login="accountman")
+
+    def test_amount_unpaid_with_refund_pos_order(self):
+        product = self.env['product.product'].create({
+            'name': 'Refund Test Product',
+            'available_in_pos': True,
+            'lst_price': 100.0,
+            'taxes_id': [],
+        })
+        partner = self.env['res.partner'].create({'name': 'Refund Test Partner'})
+
+        sale_order = self.env['sale.order'].sudo().create({
+            'partner_id': partner.id,
+            'order_line': [(0, 0, {
+                'product_id': product.id,
+                'name': product.name,
+                'product_uom_qty': 1,
+                'price_unit': product.lst_price,
+                'tax_ids': [],
+            })],
+        })
+        sale_order.action_confirm()
+
+        self.main_pos_config.open_ui()
+        current_session = self.main_pos_config.current_session_id
+
+        pos_order_data = {
+            'amount_paid': 100.0,
+            'amount_return': 0.0,
+            'amount_tax': 0.0,
+            'amount_total': 100.0,
+            'date_order': fields.Datetime.to_string(fields.Datetime.now()),
+            'fiscal_position_id': False,
+            'to_invoice': False,
+            'partner_id': partner.id,
+            'pricelist_id': self.main_pos_config.available_pricelist_ids[0].id,
+            'lines': [[0, 0, {
+                'discount': 0,
+                'pack_lot_ids': [],
+                'price_unit': 100.0,
+                'product_id': product.id,
+                'price_subtotal': 100.0,
+                'price_subtotal_incl': 100.0,
+                'sale_order_line_id': sale_order.order_line[0].id,
+                'sale_order_origin_id': sale_order.id,
+                'qty': 1,
+                'tax_ids': [],
+            }]],
+            'name': 'Order Refund-Test-0001',
+            'session_id': current_session.id,
+            'sequence_number': 1,
+            'payment_ids': [[0, 0, {
+                'amount': 100.0,
+                'name': fields.Datetime.now(),
+                'payment_method_id': self.main_pos_config.payment_method_ids[0].id,
+            }]],
+            'user_id': self.env.uid,
+            'uuid': str(uuid.uuid4()),
+        }
+
+        data = self.env['pos.order'].sync_from_ui([pos_order_data])
+        pos_order_record = self.env['pos.order'].browse(data['pos.order'][0]['id'])
+
+        self.assertEqual(
+            sale_order.amount_unpaid, 0.0,
+            "amount_unpaid should be 0 after the sale order is fully paid through POS",
+        )
+
+        # Backend refund: _prepare_refund_values sets is_refund=True and
+        # _compute_amount_line_all produces a positive price_subtotal_incl.
+        refund_action = pos_order_record.refund()
+        refund_order = self.env['pos.order'].browse(refund_action['res_id'])
+
+        self.assertTrue(
+            refund_order.is_refund,
+            "Refund order created via refund() must have is_refund=True",
+        )
+        self.assertAlmostEqual(
+            refund_order.lines[0].price_subtotal_incl, 100.0,
+            msg="Refund line price_subtotal_incl is positive (sign is absorbed into qty by is_refund logic)",
+        )
+
+        payment_context = {'active_ids': refund_order.ids, 'active_id': refund_order.id}
+        self.env['pos.make.payment'].with_context(**payment_context).create({
+            'amount': refund_order.amount_total,
+            'payment_method_id': self.bank_payment_method.id,
+        }).with_context(**payment_context).check()
+
+        self.assertEqual(
+            sale_order.amount_unpaid, 100.0,
+            "amount_unpaid must equal amount_total after a full POS refund; "
+            "a positive refund line must be treated as negative in the computation",
+        )
+
+    def test_refund_ship_later_qty_delivered_backend(self):
+        "This test make sure that an order refunded in the backend has correct qty_delivered/invoiced on the original sale order"
+        warehouse = self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1)
+        warehouse.delivery_steps = 'pick_pack_ship'
+
+        sale_order = self.env['sale.order'].create({
+            'partner_id': self.partner_a.id,
+            'order_line': [Command.create({
+                'product_id': self.product_a.id,
+                'name': self.product_a.name,
+                'product_uom_qty': 5,
+                'price_unit': self.product_a.lst_price,
+            })],
+        })
+        sale_order.action_confirm()
+
+        self.main_pos_config.ship_later = True
+        self.main_pos_config.open_ui()
+        current_session = self.main_pos_config.current_session_id
+
+        pos_order = {
+           'amount_paid': self.product_a.lst_price * 5,
+           'amount_return': 0,
+           'amount_tax': 0,
+           'amount_total': self.product_a.lst_price * 5,
+           'company_id': self.env.company.id,
+           'date_order': fields.Datetime.to_string(fields.Datetime.now()),
+           'fiscal_position_id': False,
+           'to_invoice': True,
+           'partner_id': self.partner_a.id,
+           'pricelist_id': self.main_pos_config.available_pricelist_ids[0].id,
+           'lines': [[0,
+             0,
+             {'discount': 0,
+              'pack_lot_ids': [],
+              'price_unit': self.product_a.lst_price,
+              'product_id': self.product_a.id,
+              'price_subtotal': self.product_a.lst_price * 5,
+              'price_subtotal_incl': self.product_a.lst_price * 5,
+              'sale_order_line_id': sale_order.order_line[0].id,
+              'sale_order_origin_id': sale_order.id,
+              'qty': 5,
+              'tax_ids': []}]],
+           'name': 'Order 00044-003-0014',
+           'session_id': current_session.id,
+           'sequence_number': self.main_pos_config.journal_id.id,
+           'payment_ids': [[0,
+             0,
+             {'amount': self.product_a.lst_price * 5,
+              'name': fields.Datetime.now(),
+              'payment_method_id': self.main_pos_config.payment_method_ids[0].id}]],
+           'user_id': self.env.uid,
+           'uuid': str(uuid.uuid4()),
+        }
+
+        data = self.env['pos.order'].sync_from_ui([pos_order])
+        pos_order_id = data['pos.order'][0]['id']
+        pos_order_record = self.env['pos.order'].browse(pos_order_id)
+        self.assertEqual(sale_order.order_line.qty_delivered, 5)
+        self.assertEqual(sale_order.order_line.qty_invoiced, 5)
+        pos_order_refund_record = pos_order_record._refund()
+        payment_context = {"active_ids": pos_order_refund_record.ids, "active_id": pos_order_refund_record.id}
+        order_payment = self.env['pos.make.payment'].with_context(**payment_context).create({
+            'amount': -5000,
+            'payment_method_id': self.bank_payment_method.id
+        })
+        order_payment.with_context(**payment_context).check()
+        for picking in pos_order_refund_record.picking_ids:
+            picking.button_validate()
+        self.assertEqual(sale_order.order_line.qty_delivered, 0)
+        self.assertEqual(sale_order.order_line.qty_invoiced, 0)
 
 
 @tagged('post_install', '-at_install')

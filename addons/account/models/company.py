@@ -35,8 +35,8 @@ MONTH_SELECTION = [
 # !!! KEEP ALIGNED WITH ACCOUNT_PEPPOL MANIFEST -> COUNTRIES
 PEPPOL_DEFAULT_COUNTRIES = [
     'AT', 'BE', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI',
-    'FR', 'GR', 'IE', 'IS', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL',
-    'NO', 'PL', 'PT', 'RO', 'SE', 'SI',
+    'FR', 'IE', 'IS', 'LT', 'LU', 'LV', 'MT', 'NL', 'NO', 'SE',
+    'SI',
 ]
 
 # List of countries where Peppol footnote will be added when sending by mail.
@@ -46,9 +46,9 @@ PEPPOL_MAILING_COUNTRIES = [
 
 # List of countries where Peppol is accessible.
 PEPPOL_LIST = PEPPOL_DEFAULT_COUNTRIES + [
-    'AD', 'AL', 'AX', 'BA', 'BG', 'BL', 'GB', 'GF', 'GP', 'HR', 'HU', 'LI', 'MC', 'ME',
-    'MF', 'MK', 'MQ', 'NC', 'PF', 'PM', 'RE', 'RS', 'SK', 'SM', 'TF', 'TR', 'VA', 'WF',
-    'YT',
+    'AD', 'AL', 'AX', 'BA', 'BG', 'BL', 'GB', 'GF', 'GP', 'GR', 'HR', 'HU', 'IT', 'LI',
+    'MC', 'ME', 'MF', 'MK', 'MQ', 'NC', 'PF', 'PL', 'PM', 'PT', 'RE', 'RO', 'RS', 'SK',
+    'SM', 'TF', 'TR', 'VA', 'WF', 'YT'
 ]
 
 STORNO_MANDATORY_COUNTRIES = {'BA', 'CN', 'CZ', 'HR', 'PL', 'RO', 'RS', 'RU', 'SI', 'SK', 'UA'}
@@ -1114,15 +1114,13 @@ class ResCompany(models.Model):
     @api.depends('country_id', 'account_fiscal_country_id')
     def _compute_company_vat_placeholder(self):
         for company in self:
-            placeholder = _("/ if not applicable")
+            expected_vat = ''
             if company.country_id or company.account_fiscal_country_id:
                 expected_vat = _ref_vat.get(
                     (company.country_id.code or company.account_fiscal_country_id.code).lower()
                 )
-                if expected_vat:
-                    placeholder = _("%s, or / if not applicable", expected_vat)
 
-            company.company_vat_placeholder = placeholder
+            company.company_vat_placeholder = expected_vat
 
     @api.depends('country_id', 'account_fiscal_country_id')
     def _compute_company_registry_placeholder(self):
