@@ -113,11 +113,14 @@ MailManager.include({
      * @return {Deferred}
      */
     _fetchImStatus: function (data) {
-        var self = this;
         var partnerIDs = data.partnerIDs;
         if (_.isEmpty(partnerIDs)) {
             return Promise.resolve();
         }
+        // HKS: im_status polling disabled (slow /longpolling/im_status calls
+        // were saturating the browser HTTP/1.1 connections). Presence
+        // indicators are no longer refreshed.
+        return Promise.resolve();
         return this._rpc({
             route: '/longpolling/im_status',
             params: { partner_ids: partnerIDs },
